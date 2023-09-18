@@ -5,18 +5,21 @@ from llama_index import GPTVectorStoreIndex, SimpleDirectoryReader, StorageConte
 from langchain import OpenAI
 from flask_cors import CORS # Import the library
 from creds import API_KEY
-
+import openai
 
 app = Flask(__name__,static_folder='data')
 CORS(app)  # Enable CORS for the app
 
 DATA_DIR = 'data'
 
+os.environ['OPENAI_API_KEY']  = API_KEY
+openai.api_key = API_KEY
+
 
 
 def insert_file(file, course_name):
     # filename = secure_filename(file.filename)
-    file_dir = os.path.join(DIRECTORY, course_name)
+    file_dir = os.path.join(DATA_DIR, course_name)
     if not os.path.exists(file_dir):
         os.mkdir(file_dir)  # Create a new directory for the file
     filename = file.filename

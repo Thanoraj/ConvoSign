@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Expedite</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #F9DE91;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .course-chat-container {
+            position: relative;
+    height: 62vh;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #e0e0e0;
+    border-left: 1px solid #e0e0e0;
+        }
+
+        .course-chat-container>.chat-thread-container {
+            flex: 1 0 0%;
+            height: 90%;
+            max-height: 83%;
+            overflow-x: hidden;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 20px 10px;
+        }
+
+        .chat-thread-container .user-prompt {
+            font-family: Arial, Helvetica, sans-serif;
+            align-self: flex-end;
+            background-color: #cdffa2;
+            border-radius: 10px 0 0 10px;
+            color: #333;
+            font-size: 16px;
+            line-height: 24px;
+            max-width: 70%;
+            margin: 0;
+            padding: 10px 20px;
+        }
+
+        .chat-thread-container .bot-reply {
+            font-family: Arial, Helvetica, sans-serif;
+            align-self: flex-start;
+            background-color: #e8e8e8;
+            border-radius: 0 10px 10px 0;
+            color: #333;
+            font-size: 16px;
+            line-height: 24px;
+            max-width: 70%;
+            margin: 0;
+            padding: 10px 20px;
+        }
+
+        .course-chat-container>.chat-prompt {
+            padding: 10px;
+        }
+
+        .course-chat-container>.chat-prompt form {
+            display: flex;
+            gap: 20px;
+        }
+
+        .course-chat-container>.chat-prompt .prompt-input {
+            font-size: 16px;
+            font-weight: 400;
+            line-height: 24px;
+            color: #FCBE04;
+            border: none;
+            border-radius: 10px;
+            background-color: #fff;
+            flex: 1 0 0%;
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            padding: 10px 20px;
+        }
+
+        .course-chat-container>.chat-prompt .prompt-input {
+            font-size: 16px;
+            font-weight: 400;
+            line-height: 24px;
+            color: #FCBE04;
+            border: none;
+            border-radius: 10px;
+            background-color: #fff;
+            flex: 1 0 0%;
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            padding: 10px 20px;
+        }
+
+        .course-chat-container>.chat-prompt .submit-button {
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 24px;
+            color: #fff;
+            border-radius: 10px;
+            background-color: #FCBE04;
+            border: none;
+            outline: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+/* Add these styles */
+.logo {
+    top: 105px;
+    width: 15%; /* Adjust as needed */
+    max-width: 80px; /* Optional, to limit the maximum size */
+    height: auto;
+    position: relative;
+}
+
+.file-upload-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap; /* Allow wrapping for smaller screens */
+}
+
+.file-name {
+    flex-grow: 1;
+    text-align: left;
+    color: #0563C1;
+    margin-left: 10px;
+}
+
+/* Media query example for smaller screens */
+@media screen and (max-width: 425px) {
+    .logo {
+        width: 12%;
+    top: 10px;
+    }
+    /* Any other adjustments for smaller screens */
+}
+
+
+form[method="POST"] {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    background-color: #fff;
+    border-radius: 10px;
+    max-width: 80%;
+    margin: 20px auto;
+}
+
+form[method="POST"] label {
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
+    color: #0563C1;
+}
+
+form[method="POST"] input[type="file"] {
+    font-size: 16px;
+    color: #0563C1;
+    border-radius: 10px;
+    padding: 10px;
+    border: 1px solid #e0e0e0;
+}
+
+form[method="POST"] button[type="submit"] {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 24px;
+    color: #fff;
+    border-radius: 10px;
+    background-color: #FCBE04;
+    border: none;
+    outline: none;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+            background-color: #fff;
+            -webkit-box-shadow: 0 0 0 30px white inset !important;
+        }
+    </style>
+
+<script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.body.addEventListener('keydown', function (e) {
+                // console.log(document.activeElement);
+                // Check if the focused element is an input field
+                if (e.key === 'n' && !(document.activeElement.id === 'message-input' || document.activeElement.tagName === 'TEXTAREA')) {
+                   console.log("Working")
+                    document.getElementById('file').click();
+                }
+            });
+
+
+
+            document.getElementById('file').addEventListener('change', function () {
+                if (this.files.length > 0) {
+                    document.getElementById('file-name').textContent = this.files[0].name;
+
+                    document.getElementById('upload-form').submit();
+        // document.getElementById('upload-form').submit();
+   
+                }
+            });
+        });
+
+        
+    </script>
+</head>
+
+<body>
+    
+    <div style="display: flex;">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Expedite Logo" class="logo"> <!-- Descriptive alt text for the logo -->
+    </div>
+    
+    <form method="POST" action="/file/upload" enctype="multipart/form-data" role="form" aria-labelledby="upload-label">
+        <div id="upload-label" role="heading" aria-level="2">File Upload</div>
+        <div class="file-upload-container">
+            <label for="file" id="file-label">Upload a PDF File:</label>
+            <input type="file" id="file" name="file" accept=".pdf" required aria-labelledby="file-label" aria-required="true">
+            <span id="file-name" class="file-name" aria-live="polite"></span> <!-- Display the uploaded file name here, with aria-live to announce changes -->
+        </div>
+        <div>
+            <input type="hidden" name="filetype" value="pdf">
+        </div>
+        <div>
+            <button type="submit" role="button" aria-label="Upload PDF File">Upload</button>
+        </div>
+    </form>
+    
+    <div class="course-chat-container">
+        <div id="chat-thread" class="chat-thread-container" aria-live="polite" role="log">
+            <!-- Chat messages will be inserted here, with aria-live to announce changes -->
+        </div>
+        <div class="chat-prompt">
+            <form id="chat-form" onsubmit="submitMessage(event)">
+                <label id="message-input-label" for="message-input" style="display: none;">Enter your query:</label>
+                <input type="text" id="message-input" class="prompt-input" placeholder="Enter your query..."
+                       aria-labelledby="message-input-label" autocomplete="off" required>
+                <button type="button" id="speak-button" class="submit-button" aria-label="Speak">Speak</button>
+                <button type="submit" class="submit-button" aria-label="Send Message">Send</button>
+            </form>
+        </div>
+    </div>
+    
+
+    <script>
+
+        
+        const speakButton = document.getElementById('speak-button');
+        var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition || window.mozSpeechRecognition || window.msSpeechRecognition)();
+
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        speakButton.addEventListener('click', () => {
+            recognition.start();
+        });
+
+        recognition.addEventListener('result', (e) => {
+            const transcript = Array.from(e.results)
+                .map(result => result[0])
+                .map(result => result.transcript)
+                .join('');
+
+            document.getElementById('message-input').value = transcript;
+        });
+        // var recognition;
+        var messageInput = document.getElementById('message-input');
+        var chatForm = document.getElementById('chat-form');
+        var isRecognizing = false;
+
+        function startRecognition() {
+            window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.interimResults = true;
+
+            recognition.lang = 'en-IN'; // Add this line to set the language
+
+            recognition.addEventListener('result', (e) => {
+                const transcript = Array.from(e.results)
+                    .map(result => result[0])
+                    .map(result => result.transcript)
+                    .join('');
+
+                messageInput.value = transcript;
+            });
+
+            recognition.start();
+        }
+
+        window.addEventListener('keydown', (event) => {
+            // Only start recognition if space is pressed and input field is empty
+            if (event.code === 'Space' && !isRecognizing && messageInput.value.trim() === '') {
+                event.preventDefault();  // prevent space bar from typing a space
+                isRecognizing = true;
+                messageInput.style.backgroundColor = '#B6C61A'; // Change the background color to show that it's recording
+                startRecognition();
+            }
+        });
+
+        window.addEventListener('keyup', (event) => {
+            // Only submit form if space is released and input field is not empty
+            if (event.code === 'Space' && isRecognizing) {
+                event.preventDefault();  // prevent space bar from typing a space
+                recognition.stop();
+                isRecognizing = false;
+                messageInput.style.backgroundColor = '#FFFFFF'; // Change the background color back to its original color
+                if (messageInput.value.trim() !== '') {
+                    chatForm.dispatchEvent(new Event('submit')); // submit the form
+                    document.getElementById('message-input').value = "";
+                }
+                messageInput.value = '';
+            }
+        });
+
+        async function submitMessage(event) {
+            event.preventDefault();
+
+            const messageInput = document.getElementById('message-input');
+            const chatThread = document.getElementById('chat-thread');
+
+            const prompt = messageInput.value
+            // Add the user's message to the chat thread
+            const userMessageElement = document.createElement('p');
+            userMessageElement.classList.add('user-prompt');
+            userMessageElement.textContent = messageInput.value;
+            chatThread.appendChild(userMessageElement);
+
+            // Clear the input field for the next message
+            messageInput.value = '';
+            const response = await fetch('/query?search=' + encodeURIComponent(prompt) + '&index_name={{ index_name }}');
+            const data = await response.json();
+
+            // Add the response message to the chat thread
+            // const responseMessageElement = document.createElement('p');
+            // responseMessageElement.textContent = 'Bot: ' + data.result;
+            // chatThread.appendChild(responseMessageElement);
+
+            // Add the response message to the chat thread
+            const responseMessageElement = document.createElement('pre');
+            responseMessageElement.classList.add('bot-reply');
+            responseMessageElement.textContent = data.result;
+            responseMessageElement.style.whiteSpace = 'pre-line'; // respect newlines in text content
+            chatThread.appendChild(responseMessageElement);
+	    messageInput.value = '';
+
+
+        }
+    </script>
+</body>
+
+</html>
