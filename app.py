@@ -4,9 +4,11 @@ from flask import Flask, request, jsonify, request, Response, render_template
 from llama_index import GPTVectorStoreIndex, SimpleDirectoryReader, StorageContext, load_index_from_storage, LLMPredictor, ServiceContext
 from langchain import OpenAI
 from flask_cors import CORS # Import the library
-from creds import API_KEY
+from creds import API_KEY, HELLOSIGN_API_KEY, client_id
 import openai
-
+from hellosign_sdk import HSClient
+from flask import Flask, request, jsonify, render_template, redirect, url_for
+# ... (your existing imports)
 app = Flask(__name__,static_folder='data')
 CORS(app)  # Enable CORS for the app
 
@@ -14,6 +16,9 @@ DATA_DIR = 'data'
 
 os.environ['OPENAI_API_KEY']  = API_KEY
 openai.api_key = API_KEY
+
+
+client = HSClient(api_key=HELLOSIGN_API_KEY)
 
 
 
@@ -84,8 +89,8 @@ def file_upload():
 @app.route("/query")
 def query():
     try:
-        query = request.args.get("query")
-        course_name = request.args.get("file_name")
+        query = request.args.get("search")
+        course_name = request.args.get("index_name")
 
         if not course_name:
             # return "Please provide an index name", 400
@@ -147,7 +152,36 @@ def chat():
 
     return render_template('index.html', index_name=index_name)
 
+@app.route('/sign', methods=['GET'])
+def sign_document():
+    index_name = request.args.get('index_name')
+    if not index_name:
+        return jsonify({
+            "statusCode": 404,
+            "message": "Error",
+            "isError": True,
+            "result": "Please provide a course name"
+        }), 404
 
+    # Create an embedded signature request
+    sign_request = client.send_signature_request_embedded(
+        test_mode=True,
+        client_id= client_id,
+        subject='My Subject',
+        message='My Message',
+        signers=[
+            {'email_address': 'judesajith.aj@gmail.com', 'name': 'Jude Sajit'}
+        ],
+        files=[os.path.abspath(f"data/{index_name}/{index_name}")]
+    )
+
+    # Get the signature ID for the embedded request
+    signature_id = sign_request.signatures[0].signature_id
+
+    # Get the embedded signing URL
+    sign_url = client.get_embedded_object(signature_id).sign_url
+
+    return jsonify({"sign_url": sign_url})
 
 if __name__ == '__main__':
     app.run(debug=True)
