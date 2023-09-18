@@ -4,8 +4,8 @@
 <head>
     <title>Expedite</title>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
+    <!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <style>
         *,
         *::before,
@@ -229,6 +229,7 @@ form[method="POST"] button[type="submit"] {
 
         
     </script>
+    <script src="https://cdn.hellosign.com/public/js/embedded/v2.11.1/embedded.production.min.js"></script>
 </head>
 
 <body>
@@ -251,6 +252,14 @@ form[method="POST"] button[type="submit"] {
             <button type="submit" role="button" aria-label="Upload PDF File">Upload</button>
         </div>
     </form>
+
+
+    <div id="signing-container">
+        <h2>Sign Document</h2>
+        <button id="start-signing" onclick="startSigning()">Start Signing</button>
+        <iframe id="sign-iframe" style="width:100%; height:500px; display:none;"></iframe>
+    </div>
+    
     
     <div class="course-chat-container">
         <div id="chat-thread" class="chat-thread-container" aria-live="polite" role="log">
@@ -338,6 +347,23 @@ form[method="POST"] button[type="submit"] {
                 messageInput.value = '';
             }
         });
+
+
+        async function startSigning() {
+            const client = new window.HelloSign({
+    clientId: '3bdfa669fa8dcca488568a4be5a1a2c5'
+  });
+        const response = await fetch('/sign?&index_name={{ index_name }}'); // Replace 'your_index_name' with the actual index name
+        const data = await response.json();
+        const signUrl = data.sign_url;
+        // const signUrl = "{{ sign_url }}";  // Replace this with how you pass the URL from Flask to your template
+
+  client.open(signUrl,{ testMode: true})
+        // Show the iframe and load the signing URL
+        // const signIframe = document.getElementById('sign-iframe');
+        // signIframe.src = signUrl;
+        // signIframe.style.display = 'block';
+    }
 
         async function submitMessage(event) {
             event.preventDefault();
