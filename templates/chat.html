@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConvoSign</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        .chat-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            background-color: #fff;
+        }
+
+        .chat-header {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .right-align {
+            text-align: right;
+            margin: 5px 0;
+        }
+
+        .action-button {
+            vertical-align: top;
+            background-color: #0563c1;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 24px;
+            color: #fff;
+            border-radius: 10px;
+            border: none;
+            outline: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            gap: 10px;
+            padding: 20px 10px;
+            background-color: rgb(116, 116, 139);
+        }
+
+        .user-prompt {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: rgb(223, 223, 255);
+            border-radius: 10px 0 10px 10px;
+            color: #333;
+            font-size: 16px;
+            line-height: 24px;
+            display: inline-block;
+            max-width: 70%;
+            text-align: right;
+            margin: 0;
+            right: 0;
+            padding: 10px 20px;
+        }
+
+        .bot-reply {
+            font-family: Arial, Helvetica, sans-serif;
+            align-self: flex-start;
+            background-color: #e8e8e8;
+            border-radius: 0 10px 10px 10px;
+            color: #333;
+            font-size: 16px;
+            display: inline-block;
+            line-height: 24px;
+
+
+            max-width: 70%;
+            margin: 0;
+            padding: 10px 20px;
+        }
+
+        .chat-input {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            gap: 20px;
+            background-color: rgb(45, 45, 60);
+        }
+
+        .prompt-input {
+            font-size: 16px;
+            font-weight: 400;
+            line-height: 24px;
+            border-radius: 10px;
+            border-color: rgb(202, 201, 201);
+            background-color: #fff;
+            flex: 1 0 0%;
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            padding: 10px 20px;
+        }
+
+        .submit-button {
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 24px;
+            color: #fff;
+            border-radius: 10px;
+            background-color: #0563c1;
+            border: none;
+            outline: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        #message-input {
+            flex-grow: 1;
+            padding: 5px;
+
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chat-container">
+        <div class="chat-header card">
+            <h2 id="doc-title"></h2>
+            <button class="action-button" id="start-signing" onclick="startSigning()">Start Signing</button>
+            <iframe id="sign-iframe" style="width: 100%; height: 500px; display: none"></iframe>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <!-- Messages will be displayed here -->
+        </div>
+        <div class="chat-input chat-prompt">
+            <label id="message-input-label" for="message-input" style="display: none;">Enter your query:</label>
+            <input type="text" id="message-input" class="prompt-input" placeholder="Enter your query..."
+                aria-labelledby="message-input-label" autocomplete="off" required>
+            <button type="button" id="speak-button" class="submit-button" aria-label="Speak">Speak</button>
+            <button type="button" id="send-button" class="submit-button" aria-label="Send Message">Send</button>
+
+        </div>
+    </div>
+    <script>
+        let indexName = "{{index_name}}"
+
+        document.getElementById("doc-title").innerText = indexName;
+        const speakButton = document.getElementById('speak-button');
+        var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition || window.mozSpeechRecognition || window.msSpeechRecognition)();
+
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        speakButton.addEventListener('click', () => {
+            recognition.start();
+        });
+
+        recognition.addEventListener('result', (e) => {
+            const transcript = Array.from(e.results)
+                .map(result => result[0])
+                .map(result => result.transcript)
+                .join('');
+
+            document.getElementById('message-input').value = transcript;
+        });
+        var messageInput = document.getElementById('message-input');
+        var chatForm = document.getElementById('chat-form');
+        var isRecognizing = false;
+
+        function startRecognition() {
+            window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.interimResults = true;
+
+            recognition.lang = 'en-IN'; // Add this line to set the language
+
+            recognition.addEventListener('result', (e) => {
+                const transcript = Array.from(e.results)
+                    .map(result => result[0])
+                    .map(result => result.transcript)
+                    .join('');
+
+                messageInput.value = transcript;
+            });
+
+            recognition.start();
+        }
+
+        window.addEventListener('keydown', (event) => {
+            // Only start recognition if space is pressed and input field is empty
+            if (event.code === 'Space' && !isRecognizing && messageInput.value.trim() === '') {
+                event.preventDefault();  // prevent space bar from typing a space
+                isRecognizing = true;
+                messageInput.style.backgroundColor = '#B6C61A'; // Change the background color to show that it's recording
+                startRecognition();
+            }
+        });
+
+        window.addEventListener('keyup', (event) => {
+            // Only submit form if space is released and input field is not empty
+            if (event.code === 'Space' && isRecognizing) {
+                event.preventDefault();  // prevent space bar from typing a space
+                recognition.stop();
+                isRecognizing = false;
+                messageInput.style.backgroundColor = '#FFFFFF'; // Change the background color back to its original color
+                if (messageInput.value.trim() !== '') {
+                    chatForm.dispatchEvent(new Event('submit')); // submit the form
+                    document.getElementById('message-input').value = "";
+                }
+                messageInput.value = '';
+            }
+        });
+
+
+        async function startSigning() {
+            const client = new window.HelloSign({
+                clientId: '3bdfa669fa8dcca488568a4be5a1a2c5'
+            });
+            const response = await fetch('/sign?&index_name={{ index_name }}'); // Replace 'your_index_name' with the actual index name
+            const data = await response.json();
+            const signUrl = data.sign_url;
+
+            client.open(signUrl, { testMode: true })
+        }
+
+        document.getElementById("send-button").addEventListener("click", async (event) => {
+            event.preventDefault();
+
+            const messageInput = document.getElementById('message-input');
+            const chatThread = document.getElementById('chat-messages');
+
+            const prompt = messageInput.value
+            // Add the user's message to the chat thread
+            // Create a new <div> element with the class "right-align"
+            var divElement = document.createElement("div");
+            divElement.className = "right-align";
+
+            // Create a new <p> element with the class "user-prompt" and text content "Hi!"
+            var pElement = document.createElement("p");
+            pElement.className = "user-prompt";
+            pElement.textContent = messageInput.value.trim();
+
+            // Append the <p> element as a child of the <div> element
+            divElement.appendChild(pElement);
+            // Calculate the maximum width based on the available space (70% of the parent container)
+            chatThread.appendChild(divElement);
+
+            // Clear the input field for the next message
+            messageInput.value = '';
+            const response = await fetch('/query?search=' + encodeURIComponent(prompt) + '&index_name={{ index_name }}');
+            const data = await response.json();
+
+            var botDivElement = document.createElement("div");
+
+            const responseMessageElement = document.createElement('p');
+            responseMessageElement.classList.add('bot-reply');
+            responseMessageElement.textContent = data.result.trim();
+            responseMessageElement.style.whiteSpace = 'pre-line'; // respect newlines in text content
+            botDivElement.appendChild(responseMessageElement);
+            chatThread.appendChild(botDivElement);
+            messageInput.value = '';
+
+
+
+
+        })
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const messageInput = document.getElementById("message-input");
+            const sendButton = document.getElementById("send-button");
+            // Handle pressing Enter key
+            messageInput.addEventListener("keyup", function (event) {
+                if (event.key === "Enter") {
+                    sendButton.click(); // Simulate a click on the send button
+                }
+            });
+        });
+    </script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>ConvoSign</title>
+  <meta charset="utf-8" />
+  <!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: rgb(116, 116, 139);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .file-upload-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      /* Allow wrapping for smaller screens */
+    }
+
+    .file-name {
+      flex-grow: 1;
+      text-align: left;
+      color: #0563c1;
+      margin-left: 10px;
+    }
+
+    /* Media query example for smaller screens */
+    @media screen and (max-width: 425px) {
+      .logo {
+        width: 12%;
+        top: 10px;
+      }
+
+      /* Any other adjustments for smaller screens */
+    }
+
+    /* form[method="POST"] {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 20px;
+        border: 1px solid #e0e0e0;
+        background-color: #fff;
+        border-radius: 10px;
+        max-width: 80%;
+        margin: 20px auto;
+      } */
+
+    form[method="POST"] label {
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 24px;
+      color: #0563c1;
+    }
+
+    form[method="POST"] input[type="file"] {
+      font-size: 16px;
+      color: #0563c1;
+      border-radius: 10px;
+      padding: 10px;
+      border: 1px solid #e0e0e0;
+    }
+
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active {
+      background-color: #fff;
+      -webkit-box-shadow: 0 0 0 30px white inset !important;
+    }
+
+    .card {
+      padding: 15px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      margin: 15px 0;
+      background-color: #fff;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .two-columns {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .column {
+      flex: 1;
+      margin: 10px;
+    }
+
+    /* Define the widths for the email and name fields */
+    input[placeholder="Email"] {
+      width: calc(66.666% - 5px);
+      /* 2/3 of the available space, minus a small margin */
+    }
+
+    input[placeholder="Name"] {
+      width: calc(33.333% - 5px);
+      /* 1/3 of the available space, minus a small margin */
+    }
+
+    /* Container to wrap each email-name pair */
+    .email-name-pair {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .input-container {
+      border: 1px solid #5f5f5f;
+      border-radius: 10px;
+      padding: 10px;
+      margin: 5px 0;
+    }
+
+    .action-button {
+      vertical-align: top;
+      background-color: #0563c1;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 24px;
+      color: #fff;
+      border-radius: 10px;
+      border: none;
+      outline: none;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+
+    #add-button {
+      margin-top: 10px;
+    }
+
+    #email-subject {
+      width: 100%;
+    }
+
+    #email-content {
+      width: 100%;
+      resize: vertical;
+    }
+
+    #success-message {
+      color: green;
+      margin: 5px 0;
+    }
+
+    .loader {
+      border: 5px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 5px solid #3498db;
+      width: 50px;
+      height: 50px;
+      -webkit-animation: spin 2s linear infinite;
+      animation: spin 2s linear infinite;
+    }
+
+    #signing-url-card {
+      display: inline-block;
+      width: auto;
+      /* other styles ... */
+    }
+
+    @-webkit-keyframes spin {
+      0% {
+        -webkit-transform: rotate(0deg);
+      }
+
+      100% {
+        -webkit-transform: rotate(360deg);
+      }
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+
+  <script defer>
+    let fileName;
+    document.addEventListener("DOMContentLoaded", function () {
+      document.getElementById("file").addEventListener("change", function () {
+        if (this.files.length > 0) {
+          fileName = undefined;
+          console.log("uploading");
+        }
+      });
+
+      // Listen for the form submit event
+      document.getElementById("upload-form").addEventListener("submit", async function (event) {
+        document.getElementById("upload-loader").style.display = "inline-block";
+
+        event.preventDefault(); // Prevent the default form submission
+
+        // Clear the error message
+        document.getElementById("error-message").textContent = "";
+        document.getElementById("success-message").textContent = "";
+        // Create FormData object and append the file
+        const formData = new FormData();
+        formData.append('file', document.getElementById('file').files[0]);
+        formData.append('filetype', 'pdf');
+
+        // Make the API call to upload the file
+        try {
+          const response = await fetch('/file/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          // Check the response status
+          if (response.status === 200) {
+            // Successful upload
+            const data = await response.json();
+            fileName = document.getElementById('file').files[0].name;  // Assuming the API returns the fileName in the response
+            document.getElementById("success-message").innerHTML = `<span style="color: green;">✓</span> ${data.message}`;
+          } else {
+            // Failed upload
+            const data = await response.json();
+            document.getElementById("error-message").textContent = data.message; // Assuming the API returns a 'message' in the response
+          }
+        } catch (error) {
+          document.getElementById("error-message").textContent = error.toString();
+        }
+        document.getElementById("upload-loader").style.display = "none";
+
+      });
+
+      document
+        .getElementById("add-button")
+        .addEventListener("click", function () {
+
+          const newInput = document.createElement("div");
+          newInput.className = "email-name-pair";
+          newInput.innerHTML = `
+          <input type="text" class="input-container" placeholder="Email" />
+          <input type="text" class="input-container" placeholder="Name" />
+        `;
+          document
+            .getElementById("email-name-container")
+            .appendChild(newInput);
+        });
+
+      const requestSignButton = document.getElementById(
+        "request-sign-button"
+      );
+
+      // Listen for the button click
+      requestSignButton.addEventListener("click", async function () {
+        event.preventDefault(); // Prevent the default form submission
+
+        console.log(fileName)
+        if (fileName !== undefined) {
+          document.getElementById("request-sign-loader").style.display = "inline-block";
+
+          document.getElementById("error-message").textContent = "";
+
+          // Gather data from the form
+          const emailSubject = document.getElementById("email-subject").value;
+          const emailContent = document.getElementById("email-content").value;
+          const emailNamePairs =
+            document.querySelectorAll(".email-name-pair");
+
+          // Create an array of dictionaries for email and name pairs
+          let emailNameArray = [];
+          emailNamePairs.forEach((pair) => {
+            const emailInput = pair.querySelector(
+              "input[type=text]:nth-child(1)"
+            );
+            const nameInput = pair.querySelector(
+              "input[type=text]:nth-child(2)"
+            );
+            emailNameArray.push({
+              email: emailInput.value,
+              name: nameInput.value,
+            });
+          });
+
+          // Prepare the payload for the POST request
+          const payload = {
+            email_subject: emailSubject,
+            email_content: emailContent,
+            clients: emailNameArray,
+            index_name: document.getElementById('file').files[0].fileName,
+          };
+
+
+
+          // Send POST request to /sign endpoint
+          try {
+            const response = await fetch("/request_sign", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            });
+
+            if (response.ok) {
+              let data = await response.json();
+              document.getElementById("signing-url").value = "http://127.0.0.1:5000/chat?index_name=" + fileName;
+
+              // Display the card
+              document.getElementById("signing-url-card").style.display = "block";
+            } else {
+              alert("Request failed: " + response.status);
+            }
+          } catch (error) {
+            console.error("Error:", error);
+          }
+          document.getElementById("request-sign-loader").style.display = "none";
+
+        } else {
+          document.getElementById("error-message").textContent =
+            "Please Upload a document to sign";
+        }
+      });
+
+      document.getElementById("copy-button").addEventListener("click", function () {
+        const signingUrlInput = document.getElementById("signing-url");
+        signingUrlInput.select();
+        signingUrlInput.setSelectionRange(0, 99999); // For mobile devices
+        document.execCommand("copy");
+      });
+    });
+
+
+  </script>
+  <script src="https://cdn.hellosign.com/public/js/embedded/v2.11.1/embedded.production.min.js"></script>
+</head>
+
+<body>
+  <form method="POST" action="/file/upload" enctype="multipart/form-data" role="form" aria-labelledby="upload-label"
+    id="upload-form">
+    <div class="card">
+      <div id="upload-label" role="heading" aria-level="2">File Upload</div>
+      <div class="file-upload-container">
+        <label for="file" id="file-label">Upload a PDF File:</label>
+        <input type="file" id="file" name="file" accept=".pdf" required aria-labelledby="file-label"
+          aria-required="true" />
+        <!-- <span id="file-name" class="file-name" aria-live="polite"></span> -->
+        <!-- Display the uploaded file name here, with aria-live to announce changes -->
+      </div>
+      <div>
+        <input type="hidden" name="filetype" value="pdf" />
+      </div>
+      <div id="error-message" style="color: red"></div>
+      <div id="success-message"></div>
+      <div>
+        <button id="submit-button" type="submit" role="button" class="action-button" aria-label="Upload PDF File">
+          Upload
+        </button>
+        <div id="upload-loader" class="loader" style="display: none;"></div>
+
+      </div>
+    </div>
+  </form>
+  <form method="POST" action="/request_sign" enctype="application/json" role="form" aria-labelledby="sign-label">
+    <div class="two-columns">
+      <!-- First Column -->
+      <div class="column">
+        <!-- Email Subject Card -->
+        <div class="card">
+          <label for="email-subject">Email Subject:</label>
+          <input type="text" id="email-subject" class="input-container" name="email-subject" required />
+        </div>
+
+        <!-- Email Content Card -->
+        <div class="card">
+          <label for="email-content">Email Content:</label>
+          <textarea class="input-container" id="email-content" name="email-content" rows="4" cols="50"
+            required></textarea>
+        </div>
+      </div>
+
+      <!-- Second Column -->
+      <div class="column">
+        <div class="card">
+          <label>Email and Name:</label>
+          <div id="email-name-container">
+            <div class="email-name-pair">
+              <input type="text" class="input-container" placeholder="Email" />
+              <input type="text" class="input-container" placeholder="Name" />
+            </div>
+          </div>
+          <button type="button" id="add-button">+</button>
+        </div>
+      </div>
+    </div>
+    <button type="submit" id="request-sign-button" class="action-button">
+      Request Sign
+    </button>
+    <div id="request-sign-loader" class="loader" style="display: none;"></div>
+
+
+
+  </form>
+  <div id="signing-url-card" class="card" style="display: none;">
+    <label for="signing-url">Signing URL:</label>
+    <input type="text" id="signing-url" readonly class="input-container" />
+    <button id="copy-button" type="button">Copy</button>
+  </div>
+</body>
+
+</html>

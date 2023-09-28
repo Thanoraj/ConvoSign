@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Expedite</title>
+    <title>ConvoSign</title>
     <meta charset="utf-8">
     <!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -18,18 +18,17 @@
             padding: 0;
             font-family: Arial, Helvetica, sans-serif;
             background-color: #F9DE91;
-            min-height: 100vh;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
 
         .course-chat-container {
             position: relative;
-    height: 62vh;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid #e0e0e0;
-    border-left: 1px solid #e0e0e0;
+            height: 62vh;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #e0e0e0;
+            border-left: 1px solid #e0e0e0;
         }
 
         .course-chat-container>.chat-thread-container {
@@ -121,78 +120,83 @@
             padding: 10px 20px;
             cursor: pointer;
         }
-/* Add these styles */
-.logo {
-    top: 105px;
-    width: 15%; /* Adjust as needed */
-    max-width: 80px; /* Optional, to limit the maximum size */
-    height: auto;
-    position: relative;
-}
 
-.file-upload-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap; /* Allow wrapping for smaller screens */
-}
+        /* Add these styles */
+        .logo {
+            top: 105px;
+            width: 15%;
+            /* Adjust as needed */
+            max-width: 80px;
+            /* Optional, to limit the maximum size */
+            height: auto;
+            position: relative;
+        }
 
-.file-name {
-    flex-grow: 1;
-    text-align: left;
-    color: #0563C1;
-    margin-left: 10px;
-}
+        .file-upload-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            /* Allow wrapping for smaller screens */
+        }
 
-/* Media query example for smaller screens */
-@media screen and (max-width: 425px) {
-    .logo {
-        width: 12%;
-    top: 10px;
-    }
-    /* Any other adjustments for smaller screens */
-}
+        .file-name {
+            flex-grow: 1;
+            text-align: left;
+            color: #0563C1;
+            margin-left: 10px;
+        }
+
+        /* Media query example for smaller screens */
+        @media screen and (max-width: 425px) {
+            .logo {
+                width: 12%;
+                top: 10px;
+            }
+
+            /* Any other adjustments for smaller screens */
+        }
 
 
-form[method="POST"] {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 20px;
-    border: 1px solid #e0e0e0;
-    background-color: #fff;
-    border-radius: 10px;
-    max-width: 80%;
-    margin: 20px auto;
-}
+        form[method="POST"] {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            background-color: #fff;
+            border-radius: 10px;
+            max-width: 80%;
+            margin: 20px auto;
+        }
 
-form[method="POST"] label {
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 24px;
-    color: #0563C1;
-}
+        form[method="POST"] label {
+            font-size: 16px;
+            font-weight: 400;
+            line-height: 24px;
+            color: #0563C1;
+        }
 
-form[method="POST"] input[type="file"] {
-    font-size: 16px;
-    color: #0563C1;
-    border-radius: 10px;
-    padding: 10px;
-    border: 1px solid #e0e0e0;
-}
+        form[method="POST"] input[type="file"] {
+            font-size: 16px;
+            color: #0563C1;
+            border-radius: 10px;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+        }
 
-form[method="POST"] button[type="submit"] {
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 24px;
-    color: #fff;
-    border-radius: 10px;
-    background-color: #FCBE04;
-    border: none;
-    outline: none;
-    padding: 10px 20px;
-    cursor: pointer;
-}
+        form[method="POST"] button[type="submit"] {
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 24px;
+            color: #fff;
+            border-radius: 10px;
+            background-color: #FCBE04;
+            border: none;
+            outline: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
 
         input:-webkit-autofill,
         input:-webkit-autofill:hover,
@@ -203,13 +207,13 @@ form[method="POST"] button[type="submit"] {
         }
     </style>
 
-<script>
+    <script>
         document.addEventListener('DOMContentLoaded', function () {
             document.body.addEventListener('keydown', function (e) {
                 // console.log(document.activeElement);
                 // Check if the focused element is an input field
                 if (e.key === 'n' && !(document.activeElement.id === 'message-input' || document.activeElement.tagName === 'TEXTAREA')) {
-                   console.log("Working")
+                    console.log("Working")
                     document.getElementById('file').click();
                 }
             });
@@ -221,29 +225,31 @@ form[method="POST"] button[type="submit"] {
                     document.getElementById('file-name').textContent = this.files[0].name;
 
                     document.getElementById('upload-form').submit();
-        // document.getElementById('upload-form').submit();
-   
+                    // document.getElementById('upload-form').submit();
+
                 }
             });
         });
 
-        
+
     </script>
     <script src="https://cdn.hellosign.com/public/js/embedded/v2.11.1/embedded.production.min.js"></script>
 </head>
 
 <body>
-    
-    <div style="display: flex;">
-        <img src="{{ url_for('static', filename='logo.png') }}" alt="Expedite Logo" class="logo"> <!-- Descriptive alt text for the logo -->
-    </div>
-    
+
+    <!-- <div style="display: flex;">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Expedite Logo" class="logo"> Descriptive alt text for the logo
+    </div> -->
+
     <form method="POST" action="/file/upload" enctype="multipart/form-data" role="form" aria-labelledby="upload-label">
         <div id="upload-label" role="heading" aria-level="2">File Upload</div>
         <div class="file-upload-container">
             <label for="file" id="file-label">Upload a PDF File:</label>
-            <input type="file" id="file" name="file" accept=".pdf" required aria-labelledby="file-label" aria-required="true">
-            <span id="file-name" class="file-name" aria-live="polite"></span> <!-- Display the uploaded file name here, with aria-live to announce changes -->
+            <input type="file" id="file" name="file" accept=".pdf" required aria-labelledby="file-label"
+                aria-required="true">
+            <span id="file-name" class="file-name" aria-live="polite"></span>
+            <!-- Display the uploaded file name here, with aria-live to announce changes -->
         </div>
         <div>
             <input type="hidden" name="filetype" value="pdf">
@@ -259,8 +265,8 @@ form[method="POST"] button[type="submit"] {
         <button id="start-signing" onclick="startSigning()">Start Signing</button>
         <iframe id="sign-iframe" style="width:100%; height:500px; display:none;"></iframe>
     </div>
-    
-    
+
+
     <div class="course-chat-container">
         <div id="chat-thread" class="chat-thread-container" aria-live="polite" role="log">
             <!-- Chat messages will be inserted here, with aria-live to announce changes -->
@@ -269,17 +275,17 @@ form[method="POST"] button[type="submit"] {
             <form id="chat-form" onsubmit="submitMessage(event)">
                 <label id="message-input-label" for="message-input" style="display: none;">Enter your query:</label>
                 <input type="text" id="message-input" class="prompt-input" placeholder="Enter your query..."
-                       aria-labelledby="message-input-label" autocomplete="off" required>
+                    aria-labelledby="message-input-label" autocomplete="off" required>
                 <button type="button" id="speak-button" class="submit-button" aria-label="Speak">Speak</button>
                 <button type="submit" class="submit-button" aria-label="Send Message">Send</button>
             </form>
         </div>
     </div>
-    
+
 
     <script>
 
-        
+
         const speakButton = document.getElementById('speak-button');
         var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition || window.mozSpeechRecognition || window.msSpeechRecognition)();
 
@@ -351,19 +357,19 @@ form[method="POST"] button[type="submit"] {
 
         async function startSigning() {
             const client = new window.HelloSign({
-    clientId: '3bdfa669fa8dcca488568a4be5a1a2c5'
-  });
-        const response = await fetch('/sign?&index_name={{ index_name }}'); // Replace 'your_index_name' with the actual index name
-        const data = await response.json();
-        const signUrl = data.sign_url;
-        // const signUrl = "{{ sign_url }}";  // Replace this with how you pass the URL from Flask to your template
+                clientId: '3bdfa669fa8dcca488568a4be5a1a2c5'
+            });
+            const response = await fetch('/sign?&index_name={{ index_name }}'); // Replace 'your_index_name' with the actual index name
+            const data = await response.json();
+            const signUrl = data.sign_url;
+            // const signUrl = "{{ sign_url }}";  // Replace this with how you pass the URL from Flask to your template
 
-  client.open(signUrl,{ testMode: true})
-        // Show the iframe and load the signing URL
-        // const signIframe = document.getElementById('sign-iframe');
-        // signIframe.src = signUrl;
-        // signIframe.style.display = 'block';
-    }
+            client.open(signUrl, { testMode: true })
+            // Show the iframe and load the signing URL
+            // const signIframe = document.getElementById('sign-iframe');
+            // signIframe.src = signUrl;
+            // signIframe.style.display = 'block';
+        }
 
         async function submitMessage(event) {
             event.preventDefault();
@@ -394,10 +400,27 @@ form[method="POST"] button[type="submit"] {
             responseMessageElement.textContent = data.result;
             responseMessageElement.style.whiteSpace = 'pre-line'; // respect newlines in text content
             chatThread.appendChild(responseMessageElement);
-	    messageInput.value = '';
+            messageInput.value = '';
 
 
         }
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const messageInput = document.getElementById("message-input");
+            const sendButton = document.getElementById("send-button");
+            const chatMessages = document.getElementById("chat-messages");
+
+
+
+            // Handle pressing Enter key
+            messageInput.addEventListener("keyup", function (event) {
+                if (event.key === "Enter") {
+                    sendButton.click(); // Simulate a click on the send button
+                }
+            });
+        });
     </script>
 </body>
 
