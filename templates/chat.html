@@ -503,12 +503,12 @@
                     responseMessageElement.style.transform = 'rotateY(0deg)';
                     responseMessageElement.style.borderRadius = '0 10px 10px 10px';
                     msgEle.style.transform = 'rotateY(0deg)';
-                    msgEle.innerText = data.result.trim();
+                    msgEle.innerText = data.result.trim().replace("\n", "<br>");
                 } else {
                     responseMessageElement.style.transform = 'rotateY(180deg)';
                     msgEle.style.transform = 'rotateY(180deg)';
                     responseMessageElement.style.borderRadius = '10px 0 10px 10px';
-                    msgEle.innerText = data.message.trim();
+                    msgEle.innerText = data.message.trim().replace("\\n", "\n").replace(/\n/g, "\n");
 
                 }
             };
@@ -544,20 +544,13 @@
             const indexName = "{{index_name}}";  // Replace this with how you get the index_name in your JavaScript
             // Replace this with how you get the sign_url in your JavaScript
 
-            const response = await fetch('/save_chat_history', {
+            await fetch('/save_chat_history', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ index_name: indexName, email: email, chatData: chatData })
             });
-
-            const data = await response.json();
-            if (data.success) {
-                alert('Chat history saved successfully.');
-            } else {
-                alert('Failed to save chat history.');
-            }
         });
     </script>
 
