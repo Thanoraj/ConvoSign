@@ -66,6 +66,8 @@
             color: #fff;
             padding: 10px;
             text-align: center;
+            word-wrap: break-word;
+            overflow: hidden;
         }
 
         .right-align {
@@ -85,6 +87,15 @@
             outline: none;
             padding: 10px 20px;
             cursor: pointer;
+        }
+
+        .input-container {
+            border: 1px solid #5f5f5f;
+            border-radius: 10px;
+            padding: 10px;
+            width: 300px;
+            text-align: center;
+            margin: 5px 0px;
         }
 
         .chat-messages {
@@ -108,6 +119,8 @@
             margin: 0;
             right: 0;
             padding: 10px 20px;
+            word-wrap: break-word;
+            overflow: hidden;
         }
 
         .bot-reply {
@@ -124,6 +137,8 @@
             max-width: 70%;
             margin: 0;
             padding: 10px 20px;
+            word-wrap: break-word;
+            overflow: hidden;
         }
 
         .front {
@@ -178,12 +193,9 @@
             position: fixed;
             top: 0;
             left: 0;
-            padding: 15px;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.115);
         }
 
         .popup-content {
@@ -193,6 +205,8 @@
             transform: translate(-50%, -50%);
             background-color: #fff;
             vertical-align: middle;
+            display: flex;
+            justify-content: center;
             align-items: center;
             padding: 20px;
             text-align: center;
@@ -207,6 +221,29 @@
             height: 100px;
             background-color: #fff;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .example-cards {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            gap: 20px;
+            background-color: rgb(116, 116, 139);
+        }
+
+        .example-card {
+            vertical-align: top;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 24px;
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            margin: 5px;
+            background-color: rgb(45, 45, 60);
+            backdrop-filter: blur(10px);
         }
 
 
@@ -225,10 +262,15 @@
 
     <div id="email-popup" class="popup">
         <div class="popup-content card">
-            <div>
-                <label for="email">Enter your email:</label>
-                <input type="email" id="email">
-                <button id="submit-email">Submit</button>
+            <div class="email-input">
+                <div>
+                    <label for="email">Enter your email:</label>
+                </div>
+                <div>
+                    <input type="email" id="email" class="input-container">
+                </div>
+
+                <button id="submit-email" class="action-button">Submit</button>
             </div>
 
         </div>
@@ -244,8 +286,17 @@
             </div>
             <div class="chat-messages" id="chat-messages">
                 <!-- Messages will be displayed here -->
+
+            </div>
+            <div id="example-cards" class="example-cards">
+                <button class="example-card" onclick="sendExampleMessage('Hi')">Hi</button>
+                <button class="example-card" onclick="sendExampleMessage('How are you?')">How are you?</button>
+                <button class="example-card" onclick="sendExampleMessage('Tell me more about this service')">Tell me
+                    more about this service</button>
+                <button class="example-card" onclick="sendExampleMessage('Help')">Help</button>
             </div>
             <div class="chat-input chat-prompt">
+
                 <label id="message-input-label" for="message-input" style="display: none;">Enter your query:</label>
                 <input type="text" id="message-input" class="prompt-input" placeholder="Enter your query..."
                     aria-labelledby="message-input-label" autocomplete="off" required>
@@ -264,6 +315,17 @@
     <script>
         let indexName = "{{index_name}}"
         let email = null;
+
+        function sendExampleMessage(message) {
+            document.getElementById('message-input').value = message;
+            document.getElementById('send-button').click();
+            hideExampleCards();
+        }
+
+        function hideExampleCards() {
+            document.getElementById('example-cards').style.display = 'none';
+        }
+
         document.addEventListener("DOMContentLoaded", async function () {
             const popup = document.getElementById('email-popup');
             const submitEmailBtn = document.getElementById('submit-email');
@@ -446,7 +508,7 @@
                     responseMessageElement.style.transform = 'rotateY(180deg)';
                     msgEle.style.transform = 'rotateY(180deg)';
                     responseMessageElement.style.borderRadius = '10px 0 10px 10px';
-                    msgEle.innerText = "Apple\nsample";
+                    msgEle.innerText = data.message.trim();
 
                 }
             };

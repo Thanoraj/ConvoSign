@@ -72,12 +72,17 @@ def save_to_json(index_name, email, chat_history=None):
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
+    
     json_file_path = os.path.join(folder_path, "sign_data.json")
 
     existing_data = {}
-    
-    with open(json_file_path, 'r') as f:
-        json.load(f, existing_data)
+    print(existing_data)
+    try:
+        with open(json_file_path, 'r') as f:
+            existing_data = json.load(f)
+
+    except Exception as e:
+        print(e)
     print(existing_data)
     if chat_history:
         existing_data[email].update({"chat_history": chat_history})
@@ -123,7 +128,7 @@ def load_index(course_name):
 def queryFile(queryString, course_name):  # Added course_name as parameter
     index = load_index(course_name)  # Load the required index
     queryEngine = index.as_query_engine()
-    return queryEngine.query(queryString).response
+    return queryEngine.query(queryString)
 
 
 @app.route("/file/upload", methods=["POST"])
@@ -159,8 +164,11 @@ def query():
         if not os.path.isdir(index_path):
             return create_response(404, "Error", True, "This course is not available")
         
-        result = queryFile(query, course_name)
-        return create_response(200, "Answer", False, result)
+        queryeng = queryFile(query, course_name)
+        source = queryeng.source_nodes[0]
+        result = queryeng.response
+
+        return create_response(200, str(source), False, result)
     
     except Exception as e:
         logging.error(f"An error occurred: {e}")
