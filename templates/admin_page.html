@@ -309,29 +309,46 @@
 
           // Send POST request to /sign endpoint
           try {
-            const response = await fetch("/request_sign", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(payload),
-            });
+  const response = await fetch("/request_sign", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
 
-            if (response.ok) {
-              let data = await response.json();
-              console.log(data,"response");
-              const sign_url = data.result
-              
-            document.getElementById("signing-url").value = "http://127.0.0.1:5000/chat?index_name=" + fileName;
-              // Display the card
-              document.getElementById("signing-url-card").style.display = "block";
-            } else {
-              alert("Request failed: " + response.status);
-            }
-          } catch (error) {
-            console.error("Error:", error);
-          }
-          document.getElementById("request-sign-loader").style.display = "none";
+  if (response.ok) {
+    let data = await response.json();
+    console.log(data, "response");
+
+    // Clear any existing URLs
+    const urlContainer = document.getElementById("signing-url-card");
+    urlContainer.innerHTML = "";
+
+    // Loop through each email and sign URL pair
+   // Loop through each email and sign URL pair
+   data.result.forEach((pair) => {
+      const email = pair.email_address;
+
+      // Generate the new sign URL
+      const newSignUrl = "http://127.0.0.1:5000/chat?index_name=" + fileName + "&email=" + email;
+
+      // Create a new element to display the email and new sign URL
+      const newElement = document.createElement("div");
+      newElement.innerHTML = `<p>Email: ${email}</p><p>Sign URL: <a href="${newSignUrl}" target="_blank">${newSignUrl}</a></p>`;
+
+      // Append the new element to the container
+      urlContainer.appendChild(newElement);
+    });
+    // Display the container
+    document.getElementById("signing-url-card").style.display = "block";
+  } else {
+    alert("Request failed: " + response.status);
+  }
+} catch (error) {
+  console.error("Error:", error);
+}
+document.getElementById("request-sign-loader").style.display = "none";
 
         } else {
           document.getElementById("error-message").textContent =

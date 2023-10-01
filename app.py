@@ -37,7 +37,7 @@ openai.api_key = API_KEY
 client = HSClient(api_key=HELLOSIGN_API_KEY)
 
 
-def save_to_json(index_name, sign_url, chat_history=None):
+def save_to_json(index_name, sign_url_list, chat_history=None):
     cn = index_name.replace(".pdf", "")
     folder_path = os.path.join("data", cn)
     
@@ -51,7 +51,7 @@ def save_to_json(index_name, sign_url, chat_history=None):
         with open(json_file_path, 'r') as f:
             existing_data = json.load(f)
 
-    existing_data.update({"index_name": index_name, "sign_url": sign_url})
+    existing_data.update({"index_name": index_name, "sign_url_list": sign_url_list})
     if chat_history:
         existing_data.update({"chat_history": chat_history})
 
@@ -97,7 +97,7 @@ def load_index(course_name):
 def queryFile(queryString, course_name):  # Added course_name as parameter
     index = load_index(course_name)  # Load the required index
     queryEngine = index.as_query_engine()
-    return queryEngine.query(queryString).response
+    return queryEngine.query(queryString)
 
 
 @app.route("/file/upload", methods=["POST"])
@@ -133,8 +133,11 @@ def query():
         if not os.path.isdir(index_path):
             return create_response(404, "Error", True, "This course is not available")
         
-        result = queryFile(query, course_name)
-        return create_response(200, "Answer", False, result)
+        queryeng = queryFile(query, course_name)
+        source = queryeng.source_nodes[0]
+        result = queryeng.response
+
+        return create_response(200, str(source), False, result)
     
     except Exception as e:
         logging.error(f"An error occurred: {e}")
@@ -144,14 +147,12 @@ def query():
 @app.route('/chat', methods=['GET'])
 def chat():
     index_name = request.args.get('index_name')
-    # sign_url = request.args.get('sign_url')
+    email = request.args.get('email')
 
+    if not index_name or not email:
+        return create_response(404, "Error", True, "Please provide both index_name and email")
 
-    if not index_name:
-        return create_response(404, "Error", True, "Please provide a course name")
-
-    return render_template('chat.html', index_name=index_name)
-
+    return render_template('chat.html', index_name=index_name, email=email)
 
 
 
@@ -161,49 +162,57 @@ def save_chat_history():
     try:
         chat_data = request.json.get('chatData')
         index_name = request.json.get('index_name')
-        sign_url = request.json.get('sign_url')  # If you have the sign_url, otherwise you can remove this
-        save_to_json(index_name, sign_url, chat_data)
+        email = request.json.get('email')
+
+        # sign_url = request.json.get('sign_url')  # If you have the sign_url, otherwise you can remove this
+        save_to_json(index_name,  [{"email": email}], chat_data)
         return jsonify({'success': True}), 200
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route("/request_sign", methods=['GET', 'POST'])
-def request_sign ():
+def request_sign():
     if request.method == "POST":
         index_name = request.json.get('index_name')
-        cn = index_name.replace(".pdf","")
+        cn = index_name.replace(".pdf", "")
         email_content = request.json.get("email_content")
         email_body = request.json.get("email_body")
-        clients = request.json.get("clients",[])
+        clients = request.json.get("clients", [])
+        
         sign_request = client.send_signature_request_embedded(
-        test_mode=True,
-        client_id= client_id,
-        subject=email_body,
-        message=email_content,
-        signers=clients,
-        files=[os.path.abspath(f"data/{cn}/{index_name}")]    )
+            test_mode=True,
+            client_id=client_id,
+            subject=email_body,
+            message=email_content,
+            signers=clients,
+            files=[os.path.abspath(f"data/{cn}/{index_name}")]
+        )
 
+        # Create an empty list to hold email and sign_url pairs
+        email_and_sign_url_list = []
 
-    # Get the signature ID for the embedded request
-        signature_id = sign_request.signatures[0].signature_id
+        # Loop through each signature to associate it with an email
+        for i, signature in enumerate(sign_request.signatures):
+            signature_id = signature.signature_id
+            sign_url = client.get_embedded_object(signature_id).sign_url
+            email_address = clients[i]['email_address']
+            email_and_sign_url_list.append({
+                'email_address': email_address,
+                'sign_url': sign_url
+            })
 
-        # Get the embedded signing URL
-        sign_url = client.get_embedded_object(signature_id).sign_url
-        save_to_json(index_name, sign_url)
+        # Save to JSON (assuming save_to_json is defined elsewhere in your code)
+        save_to_json(index_name, email_and_sign_url_list)
 
-        #     print(clients)
-        # sign_url="sign url"
         return jsonify({
-            "isError":False,
-            "message":"Sign request sent successfully",
-            "result": sign_url,
-            "status-code":200,
+            "isError": False,
+            "message": "Sign request sent successfully",
+            "result": email_and_sign_url_list,
+            "status-code": 200,
         }), 200
-    else :
+    else:
         return render_template("admin_page.html")
-
-
 
 
 @app.route("/fetch_sign_url", methods=['GET'])

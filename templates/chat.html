@@ -15,6 +15,34 @@
             background-color: #f0f0f0;
         }
 
+
+        .example-cards {
+    display: flex;
+    flex-direction: column;
+    /* align-items: center; */
+    justify-content: space-around;
+    padding: 10px;
+    backdrop-filter: blur(10px);
+    background-color: transparent;
+    /* background-color: rgba(255, 255, 255, 0.1); Glass effect */
+
+
+}
+
+.example-card {
+    padding: 10px;
+    border-radius: 20px;
+    margin: 5px;
+    cursor: pointer;
+    /* transition: background-color 0.3s ease; */
+    /* background-color: #0563c1; */
+    background-color: rgba(255, 255, 255, 0.1); /* Glass effect */
+    backdrop-filter: blur(10px);
+    color: white;
+    /* border: none; */
+    cursor: pointer;
+}
+
         .logo-container {
             margin: 10px;
             padding: 5px;
@@ -105,7 +133,77 @@
             padding: 10px 20px;
         }
 
-        .bot-reply {
+
+        /* Flip container settings */
+.flip-container {
+    perspective: 1000px;
+    flex-grow: 1;
+
+}
+
+/* Flipper settings */
+.flipper {
+    transition: 0.6s;
+    flex-grow: 1;
+
+    transform-style: preserve-3d;
+    position: relative;
+}
+
+/* Front and back face settings */
+.front, .back {
+    flex-grow: 1;
+    backface-visibility: hidden;
+    position: absolute;
+    /* overflow-y: auto; */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* Front face specific settings */
+.front {
+    z-index: 2;
+    /* Add your existing bot-reply styles here */
+    font-family: Arial, Helvetica, sans-serif;
+            align-self: flex-start;
+            background-color: #e8e8e8;
+            border-radius: 0 10px 10px 10px;
+            color: #333;
+            font-size: 16px;
+            display: inline-block;
+            line-height: 24px;
+
+            flex-grow: 1;
+
+            max-width: 70%;
+            margin: 0;
+            padding: 10px 20px;
+}
+
+/* Back face specific settings */
+.back {
+    transform: rotateY(180deg);
+    /* Add your existing bot-reply styles here */
+    font-family: Arial, Helvetica, sans-serif;
+            align-self: flex-start;
+            background-color: #e8e8e8;
+            border-radius: 0 10px 10px 10px;
+            color: #333;
+            font-size: 16px;
+            display: inline-block;
+            line-height: 24px;
+            flex-grow: 1;
+
+
+            max-width: 70%;
+            margin: 0;
+            padding: 10px 20px;
+}
+
+
+        /* .bot-reply {
             font-family: Arial, Helvetica, sans-serif;
             align-self: flex-start;
             background-color: #e8e8e8;
@@ -119,7 +217,7 @@
             max-width: 70%;
             margin: 0;
             padding: 10px 20px;
-        }
+        } */
 
         .chat-input {
             display: flex;
@@ -177,7 +275,15 @@
                 <h2 id="doc-title"></h2>
                 <button class="action-button" id="finish-signing" onclick="finishSigning()">Finish Signing</button>
             </div>
+            
+            
             <div class="chat-messages" id="chat-messages">
+                <div id="example-cards" class="example-cards">
+                    <button class="example-card" onclick="sendExampleMessage('Hi')">Hi</button>
+                    <button class="example-card" onclick="sendExampleMessage('How are you?')">How are you?</button>
+                    <button class="example-card" onclick="sendExampleMessage('Tell me more about this service')">Tell me more about this service</button>
+                    <button class="example-card" onclick="sendExampleMessage('Help')">Help</button>
+                </div>
                 <!-- Messages will be displayed here -->
             </div>
             <div class="chat-input chat-prompt">
@@ -198,40 +304,73 @@
     </div>
     <script>
         let indexName = "{{index_name}}"
+        let email = "{{email}}"
 
+
+        // let signUrl = null;
+        function sendExampleMessage(message) {
+    document.getElementById('message-input').value = message;
+    document.getElementById('send-button').click();
+    hideExampleCards();
+}
+
+function hideExampleCards() {
+    document.getElementById('example-cards').style.display = 'none';
+}
+
+        
         document.addEventListener("DOMContentLoaded", async function() {
-    const client = new window.HelloSign({
-        clientId: '3bdfa669fa8dcca488568a4be5a1a2c5'
-    });
-    const response = await fetch('/fetch_sign_url?&index_name={{ index_name }}');
-    const data = await response.json();
-    const signUrl = data.result.sign_url;
+  const client = new window.HelloSign({
+    clientId: 'c353677b8c9fdb8a162356b7a80b7b40'
+  });
 
+  // Get email from URL parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  const email = urlParams.get('email');
+
+  // Fetch sign URL data
+  const response = await fetch('/fetch_sign_url?&index_name={{ index_name }}');
+  const data = await response.json();
+
+  // Find the sign URL that matches the email
+  let signUrl = null;
+  for (const item of data.result.sign_url_list) {
+    if (item.email_address === email) {
+      signUrl = item.sign_url;
+      break;
+    }
+  }
+
+  if (signUrl) {
     client.open(signUrl, { testMode: true, container: document.getElementById('sign-iframe') });
+  } else {
+    console.error("No matching sign URL found for the email.");
+  }
 
-    // Attempt to override HelloSign styles after a delay
-    setTimeout(() => {
-        const hellosignEmbedded = document.querySelector('.x-hellosign-embedded');
-        if (hellosignEmbedded) {
-            hellosignEmbedded.style.position = 'relative';
-            hellosignEmbedded.style.top = 'auto';
-            hellosignEmbedded.style.left = 'auto';
-            hellosignEmbedded.style.width = '100%';
-            hellosignEmbedded.style.zIndex = 'auto';
-        }
+  // Attempt to override HelloSign styles after a delay
+  setTimeout(() => {
+    const hellosignEmbedded = document.querySelector('.x-hellosign-embedded');
+    if (hellosignEmbedded) {
+      hellosignEmbedded.style.position = 'relative';
+      hellosignEmbedded.style.top = 'auto';
+      hellosignEmbedded.style.left = 'auto';
+      hellosignEmbedded.style.width = '100%';
+      hellosignEmbedded.style.zIndex = 'auto';
+    }
 
-        const hellosignModal = document.querySelector('.x-hellosign-embedded--in-modal');
-        if (hellosignModal) {
-            hellosignModal.style.position = 'relative';
-            hellosignModal.style.top = 'auto';
-            hellosignModal.style.left = 'auto';
-            hellosignModal.style.width = '100%';
-            hellosignModal.style.zIndex = 'auto';
-        }
-    }, 1000);  // 1000 milliseconds = 1 second
+    const hellosignModal = document.querySelector('.x-hellosign-embedded--in-modal');
+    if (hellosignModal) {
+      hellosignModal.style.position = 'relative';
+      hellosignModal.style.top = 'auto';
+      hellosignModal.style.left = 'auto';
+      hellosignModal.style.width = '100%';
+      hellosignModal.style.zIndex = 'auto';
+    }
+  }, 1000);  // 1000 milliseconds = 1 second
 });
 
-async function finishSigning() {
+window.addEventListener('beforeunload', async (event) => {
+    // Your chat history data
     const chatMessages = document.getElementById('chat-messages');
     const chatData = Array.from(chatMessages.children).map(message => {
         return {
@@ -240,15 +379,29 @@ async function finishSigning() {
         };
     });
 
+    // Your index_name and email
     const indexName = "{{index_name}}";  // Replace this with how you get the index_name in your JavaScript
-    const signUrl = "your_sign_url_here";  // Replace this with how you get the sign_url in your JavaScript
+    // const signUrl = signUrl;  // Replace this with how you get the sign_url in your JavaScript
 
+    // Get email from URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const email = urlParams.get('email');
+
+    // Prepare the payload
+    const payload = {
+        chatData: chatData,
+        index_name: indexName,
+        // sign_url: signUrl,
+        email: email  // Include email in the payload
+    };
+
+    // Make the fetch request to save the chat history
     const response = await fetch('/save_chat_history', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ chatData, index_name: indexName, sign_url: signUrl })
+        body: JSON.stringify(payload)
     });
 
     const data = await response.json();
@@ -258,6 +411,8 @@ async function finishSigning() {
         alert('Failed to save chat history.');
     }
 }
+
+);
 
         
         document.getElementById("doc-title").innerText = indexName;
@@ -334,12 +489,12 @@ async function finishSigning() {
  
 
         document.getElementById("send-button").addEventListener("click", async (event) => {
-            event.preventDefault();
+    event.preventDefault();
 
-            const messageInput = document.getElementById('message-input');
-            const chatThread = document.getElementById('chat-messages');
+    const messageInput = document.getElementById('message-input');
+    const chatThread = document.getElementById('chat-messages');
 
-            const prompt = messageInput.value
+    const prompt = messageInput.value;
             // Add the user's message to the chat thread
             // Create a new <div> element with the class "right-align"
             var divElement = document.createElement("div");
@@ -357,23 +512,52 @@ async function finishSigning() {
 
             // Clear the input field for the next message
             messageInput.value = '';
-            const response = await fetch('/query?search=' + encodeURIComponent(prompt) + '&index_name={{ index_name }}');
-            const data = await response.json();
-
-            var botDivElement = document.createElement("div");
-
-            const responseMessageElement = document.createElement('p');
-            responseMessageElement.classList.add('bot-reply');
-            responseMessageElement.textContent = data.result.trim();
-            responseMessageElement.style.whiteSpace = 'pre-line'; // respect newlines in text content
-            botDivElement.appendChild(responseMessageElement);
-            chatThread.appendChild(botDivElement);
             messageInput.value = '';
 
+    const response = await fetch('/query?search=' + encodeURIComponent(prompt) + '&index_name={{ index_name }}');
+    const data = await response.json();
 
+    // Create flip container and flipper
+    var botDivElement = document.createElement("div");
+    botDivElement.className = "flip-container";
 
+    var flipperDiv = document.createElement("div");
+    flipperDiv.className = "flipper";
 
-        })
+    // Create front and back elements
+    const frontElement = document.createElement('div');
+    frontElement.className = 'front bot-reply';
+    frontElement.textContent = data.result.trim();
+    frontElement.style.whiteSpace = 'pre-line';
+
+    const backElement = document.createElement('div');
+    backElement.className = 'back bot-reply';
+    backElement.textContent = data.message.trim();
+    backElement.style.whiteSpace = 'pre-line';
+
+    // Append front and back to flipper, and flipper to container
+    flipperDiv.appendChild(frontElement);
+    flipperDiv.appendChild(backElement);
+    botDivElement.appendChild(flipperDiv);
+
+    // Add double-click event to flip the card
+    botDivElement.addEventListener('dblclick', function() {
+        if (flipperDiv.style.transform === "rotateY(180deg)") {
+            flipperDiv.style.transform = "rotateY(0deg)";
+        } else {
+            flipperDiv.style.transform = "rotateY(180deg)";
+        }
+    });
+
+    // Append the flip container to the chat thread
+    chatThread.appendChild(botDivElement);
+
+    // Clear the input field for the next message
+    messageInput.value = '';
+
+    // Hide example cards
+    hideExampleCards();
+});
 
         document.addEventListener("DOMContentLoaded", function () {
             const messageInput = document.getElementById("message-input");
