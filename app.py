@@ -239,9 +239,11 @@ def fetch_sign_url():
         cn = index_name.replace(".pdf", "")
         folder_path = os.path.join("data", cn)
         json_file_path = os.path.join(folder_path, "sign_data.json")
+        print(json_file_path)
 
         with open(json_file_path, 'r') as f:
             data = json.load(f)
+        print(data)
 
         if email in data:
             return create_response(200, "Data fetched successfully", False, data[email])
