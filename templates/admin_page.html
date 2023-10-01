@@ -4,6 +4,9 @@
 <head>
   <title>ConvoSign</title>
   <meta charset="utf-8" />
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+ 
+  
   <!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <style>
@@ -289,7 +292,7 @@
               "input[type=text]:nth-child(2)"
             );
             emailNameArray.push({
-              email: emailInput.value,
+              email_address: emailInput.value,
               name: nameInput.value,
             });
           });
@@ -299,7 +302,7 @@
             email_subject: emailSubject,
             email_content: emailContent,
             clients: emailNameArray,
-            index_name: document.getElementById('file').files[0].fileName,
+            index_name: fileName,
           };
 
 
@@ -316,8 +319,10 @@
 
             if (response.ok) {
               let data = await response.json();
-              document.getElementById("signing-url").value = "http://127.0.0.1:5000/chat?index_name=" + fileName;
-
+              console.log(data,"response");
+              const sign_url = data.result
+              
+            document.getElementById("signing-url").value = "http://127.0.0.1:5000/chat?index_name=" + fileName;
               // Display the card
               document.getElementById("signing-url-card").style.display = "block";
             } else {
@@ -348,6 +353,9 @@
 </head>
 
 <body>
+  <!-- <div class="logo-container">
+    <img src="{{ url_for('static', filename='android-chrome-384x384.png') }}" alt="Logo">
+</div> -->
   <form method="POST" action="/file/upload" enctype="multipart/form-data" role="form" aria-labelledby="upload-label"
     id="upload-form">
     <div class="card">
@@ -356,7 +364,7 @@
         <label for="file" id="file-label">Upload a PDF File:</label>
         <input type="file" id="file" name="file" accept=".pdf" required aria-labelledby="file-label"
           aria-required="true" />
-        <!-- <span id="file-name" class="file-name" aria-live="polite"></span> -->
+        <span id="file-name" class="file-name" aria-live="polite"></span>
         <!-- Display the uploaded file name here, with aria-live to announce changes -->
       </div>
       <div>
@@ -373,6 +381,8 @@
       </div>
     </div>
   </form>
+
+
   <form method="POST" action="/request_sign" enctype="application/json" role="form" aria-labelledby="sign-label">
     <div class="two-columns">
       <!-- First Column -->

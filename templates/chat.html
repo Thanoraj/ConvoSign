@@ -3,7 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+ 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>ConvoSign</title>
     <style>
         body {
@@ -13,8 +15,29 @@
             background-color: #f0f0f0;
         }
 
+        .logo-container {
+            margin: 10px;
+            padding: 5px;
+            background-color: #ebebeb;
+            border-radius: 15%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000; /* Make sure the logo stays on top */
+        }
+        .logo-container img {
+            width: 48px;  /* You can adjust the size */
+            height: 48px; /* You can adjust the size */
+        }
+
+        .main-container {
+            display: flex;
+            height: 100vh;
+        }
+
         .chat-container {
-            position: absolute;
+            flex: 1;
+            position: relative;
             top: 0;
             left: 0;
             right: 0;
@@ -24,6 +47,15 @@
             background-color: #fff;
         }
 
+        .pdf-container {
+            width: 50%;
+            border-left: 1px solid #ccc;
+        }
+
+        #sign-iframe {
+            width: 100%;
+            height: 100%;
+        }
         .chat-header {
             background-color: #333;
             color: #fff;
@@ -130,30 +162,104 @@
 
         }
     </style>
+    <script src="https://cdn.hellosign.com/public/js/embedded/v2.11.1/embedded.production.min.js"></script>
+
 </head>
 
 <body>
-    <div class="chat-container">
-        <div class="chat-header card">
-            <h2 id="doc-title"></h2>
-            <button class="action-button" id="start-signing" onclick="startSigning()">Start Signing</button>
-            <iframe id="sign-iframe" style="width: 100%; height: 500px; display: none"></iframe>
+
+    <div class="logo-container">
+        <img src="{{ url_for('static', filename='android-chrome-384x384.png') }}" alt="Logo">
+    </div>
+    <div class="main-container">
+        <div class="chat-container">
+            <div class="chat-header card">
+                <h2 id="doc-title"></h2>
+                <button class="action-button" id="finish-signing" onclick="finishSigning()">Finish Signing</button>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <!-- Messages will be displayed here -->
+            </div>
+            <div class="chat-input chat-prompt">
+                <label id="message-input-label" for="message-input" style="display: none;">Enter your query:</label>
+                <input type="text" id="message-input" class="prompt-input" placeholder="Enter your query..."
+                    aria-labelledby="message-input-label" autocomplete="off" required>
+                <button type="button" id="speak-button" class="submit-button" aria-label="Speak">Speak</button>
+                <button type="button" id="send-button" class="submit-button" aria-label="Send Message">Send</button>
+
+            </div>
         </div>
-        <div class="chat-messages" id="chat-messages">
-            <!-- Messages will be displayed here -->
-        </div>
-        <div class="chat-input chat-prompt">
-            <label id="message-input-label" for="message-input" style="display: none;">Enter your query:</label>
-            <input type="text" id="message-input" class="prompt-input" placeholder="Enter your query..."
-                aria-labelledby="message-input-label" autocomplete="off" required>
-            <button type="button" id="speak-button" class="submit-button" aria-label="Speak">Speak</button>
-            <button type="button" id="send-button" class="submit-button" aria-label="Send Message">Send</button>
+
+        <div class="pdf-container">
+            <!-- <iframe id="sign-iframe"></iframe> -->
+            <div id="sign-iframe" ></div>
 
         </div>
     </div>
     <script>
         let indexName = "{{index_name}}"
 
+        document.addEventListener("DOMContentLoaded", async function() {
+    const client = new window.HelloSign({
+        clientId: '3bdfa669fa8dcca488568a4be5a1a2c5'
+    });
+    const response = await fetch('/fetch_sign_url?&index_name={{ index_name }}');
+    const data = await response.json();
+    const signUrl = data.result.sign_url;
+
+    client.open(signUrl, { testMode: true, container: document.getElementById('sign-iframe') });
+
+    // Attempt to override HelloSign styles after a delay
+    setTimeout(() => {
+        const hellosignEmbedded = document.querySelector('.x-hellosign-embedded');
+        if (hellosignEmbedded) {
+            hellosignEmbedded.style.position = 'relative';
+            hellosignEmbedded.style.top = 'auto';
+            hellosignEmbedded.style.left = 'auto';
+            hellosignEmbedded.style.width = '100%';
+            hellosignEmbedded.style.zIndex = 'auto';
+        }
+
+        const hellosignModal = document.querySelector('.x-hellosign-embedded--in-modal');
+        if (hellosignModal) {
+            hellosignModal.style.position = 'relative';
+            hellosignModal.style.top = 'auto';
+            hellosignModal.style.left = 'auto';
+            hellosignModal.style.width = '100%';
+            hellosignModal.style.zIndex = 'auto';
+        }
+    }, 1000);  // 1000 milliseconds = 1 second
+});
+
+async function finishSigning() {
+    const chatMessages = document.getElementById('chat-messages');
+    const chatData = Array.from(chatMessages.children).map(message => {
+        return {
+            class: message.firstChild.className,
+            text: message.firstChild.textContent
+        };
+    });
+
+    const indexName = "{{index_name}}";  // Replace this with how you get the index_name in your JavaScript
+    const signUrl = "your_sign_url_here";  // Replace this with how you get the sign_url in your JavaScript
+
+    const response = await fetch('/save_chat_history', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ chatData, index_name: indexName, sign_url: signUrl })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+        alert('Chat history saved successfully.');
+    } else {
+        alert('Failed to save chat history.');
+    }
+}
+
+        
         document.getElementById("doc-title").innerText = indexName;
         const speakButton = document.getElementById('speak-button');
         var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition || window.mozSpeechRecognition || window.msSpeechRecognition)();
@@ -215,7 +321,9 @@
                 isRecognizing = false;
                 messageInput.style.backgroundColor = '#FFFFFF'; // Change the background color back to its original color
                 if (messageInput.value.trim() !== '') {
-                    chatForm.dispatchEvent(new Event('submit')); // submit the form
+                    // chatForm.dispatchEvent(new Event('submit')); // submit the form
+                    sendButton.click(); // Simulate a click on the send button
+
                     document.getElementById('message-input').value = "";
                 }
                 messageInput.value = '';
@@ -223,16 +331,7 @@
         });
 
 
-        async function startSigning() {
-            const client = new window.HelloSign({
-                clientId: '3bdfa669fa8dcca488568a4be5a1a2c5'
-            });
-            const response = await fetch('/sign?&index_name={{ index_name }}'); // Replace 'your_index_name' with the actual index name
-            const data = await response.json();
-            const signUrl = data.sign_url;
-
-            client.open(signUrl, { testMode: true })
-        }
+ 
 
         document.getElementById("send-button").addEventListener("click", async (event) => {
             event.preventDefault();

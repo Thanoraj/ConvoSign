@@ -10,8 +10,23 @@ import openai
 from hellosign_sdk import HSClient
 from flask import Flask, request, jsonify, render_template, redirect, url_for
 # ... (your existing imports)
-app = Flask(__name__,static_folder='data')
+
+import json
+
+import logging
+
+from creds import API_KEY, HELLOSIGN_API_KEY, client_id
+
+
+# Initialize logging
+logging.basicConfig(level=logging.INFO)
+
+
+app = Flask(__name__)
 CORS(app)  # Enable CORS for the app
+
+
+
 
 DATA_DIR = 'data'
 
@@ -19,9 +34,38 @@ os.environ['OPENAI_API_KEY']  = API_KEY
 openai.api_key = API_KEY
 
 
-#client = HSClient(api_key=HELLOSIGN_API_KEY)
+client = HSClient(api_key=HELLOSIGN_API_KEY)
 
 
+def save_to_json(index_name, sign_url, chat_history=None):
+    cn = index_name.replace(".pdf", "")
+    folder_path = os.path.join("data", cn)
+    
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+    json_file_path = os.path.join(folder_path, "sign_data.json")
+
+    existing_data = {}
+    if os.path.exists(json_file_path):
+        with open(json_file_path, 'r') as f:
+            existing_data = json.load(f)
+
+    existing_data.update({"index_name": index_name, "sign_url": sign_url})
+    if chat_history:
+        existing_data.update({"chat_history": chat_history})
+
+    with open(json_file_path, 'w') as f:
+        json.dump(existing_data, f)
+
+
+def create_response(status_code, message, isError, result):
+    return jsonify({
+        "statusCode": status_code,
+        "message": message,
+        "isError": isError,
+        "result": result
+    }), status_code
 
 def insert_file(file, course_name):
     file_dir = os.path.join(DATA_DIR, course_name.replace(".pdf",""))
@@ -60,32 +104,18 @@ def queryFile(queryString, course_name):  # Added course_name as parameter
 def file_upload():
     try:
         if "file" not in request.files:
-            return jsonify({
-                    "statusCode": 400,
-                    "message": "File not found, Please upload a fil",
-                    "isError": True,
-                    "result": 'File not found, Please upload a file'
-                }), 400
+            return create_response(400, "File not found, Please upload a file", True, 'File not found, Please upload a file')
         
-    
         file = request.files["file"]
         course_name = file.filename
         insert_file(file, course_name)
         
-        return jsonify({
-            "statusCode": 200,
-            "message": "File uploaded Successfully.",
-            "isError": False,
-            "result": "File uploaded and Indexed"
-        }), 200
+        return create_response(200, "File uploaded Successfully.", False, "File uploaded and Indexed")
     
     except Exception as e:
-        return jsonify({
-            "statusCode": 400,  # Or appropriate error code
-            "message": str(e),
-            "isError": True,
-            "result": {"error": str(e)}
-        }), 400
+        logging.error(f"An error occurred: {e}")
+        print(e)  # For debugging purposes
+        return create_response(400, str(e), True, "An error occurred during file upload")
 
 
 @app.route("/query")
@@ -94,106 +124,76 @@ def query():
         query = request.args.get("search")
         course_name = request.args.get("index_name")
 
-        if not course_name:
-            # return "Please provide an index name", 400
-            return jsonify({
-                    "statusCode": 404,
-                    "message": "Error",
-                    "isError": True,
-                    "result": "Please provide a course name"
-                }), 404
-        if not query:
-            # return "Query Prompt not provided", 400
-            return jsonify({
-                "statusCode": 404,
-                "message": "Error",
-                "isError": True,
-                "result": "Query Prompt not provided"
-            }), 404
+        if not course_name or not query:
+            missing_param = "course name" if not course_name else "query"
+            return create_response(404, "Error", True, f"{missing_param} not provided")
         
-        index_path = os.path.join(DATA_DIR, course_name.replace(".pdf",""))
+        index_path = os.path.join(DATA_DIR, course_name.replace(".pdf", ""))
+        
         if not os.path.isdir(index_path):
-            # return jsonify({'error': 'This course is not available'}), 404
-            return jsonify({
-                "statusCode": 404,
-                "message": "Error",
-                "isError": True,
-                "result": 'This course is not available'
-            }), 404
+            return create_response(404, "Error", True, "This course is not available")
         
         result = queryFile(query, course_name)
-        
-        # return flask.jsonify({"completion": result}), 200
-        return jsonify({
-            "statusCode": 200,
-            "message": "Answer",
-            "isError": False,
-            "result": result
-        }), 200
+        return create_response(200, "Answer", False, result)
     
     except Exception as e:
-        return jsonify({
-            "statusCode": 500,  # Or appropriate error code
-            "message": "Error",
-            "isError": True,
-            "result": {"error": str(e)}
-        }), 500
+        logging.error(f"An error occurred: {e}")
+        return create_response(500, "Error", True, {"error": str(e)})
 
 
 @app.route('/chat', methods=['GET'])
 def chat():
     index_name = request.args.get('index_name')
+    # sign_url = request.args.get('sign_url')
+
 
     if not index_name:
-        return jsonify({
-            "statusCode": 404,
-            "message": "Error",
-            "isError": True,
-            "result": "Please provide a course name"
-        }), 404
+        return create_response(404, "Error", True, "Please provide a course name")
 
     return render_template('chat.html', index_name=index_name)
 
-@app.route('/sign', methods=['POST'])
-def sign_document():
-    index_name = request.json.args["index_name"]
-    if not index_name:
-        return jsonify({
-            "statusCode": 404,
-            "message": "Error",
-            "isError": True,
-            "result": "Please provide a course name"
-        }), 404
 
-    # Create an embedded signature request
-    # sign_request = client.send_signature_request_embedded(
-    #     test_mode=True,
-    #     client_id= client_id,
-    #     subject='My Subject',
-    #     message='My Message',
-    #     signers=[
-    #         {'email_address': 'judesajith.aj@gmail.com', 'name': 'Jude Sajith'}
-    #     ],
-    #     files=[os.path.abspath(f"data/{index_name}/{index_name}")]
-    # )
 
-    # Get the signature ID for the embedded request
-    # signature_id = sign_request.signatures[0].signature_id
 
-    # Get the embedded signing URL
-    # sign_url = client.get_embedded_object(signature_id).sign_url
 
-    return jsonify({"sign_url": "sign_url"})
+@app.route('/save_chat_history', methods=['POST'])
+def save_chat_history():
+    try:
+        chat_data = request.json.get('chatData')
+        index_name = request.json.get('index_name')
+        sign_url = request.json.get('sign_url')  # If you have the sign_url, otherwise you can remove this
+        save_to_json(index_name, sign_url, chat_data)
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @app.route("/request_sign", methods=['GET', 'POST'])
 def request_sign ():
     if request.method == "POST":
         index_name = request.json.get('index_name')
+        cn = index_name.replace(".pdf","")
         email_content = request.json.get("email_content")
         email_body = request.json.get("email_body")
         clients = request.json.get("clients",[])
-        print(clients)
-        sign_url="sign url"
+        sign_request = client.send_signature_request_embedded(
+        test_mode=True,
+        client_id= client_id,
+        subject=email_body,
+        message=email_content,
+        signers=clients,
+        files=[os.path.abspath(f"data/{cn}/{index_name}")]    )
+
+
+    # Get the signature ID for the embedded request
+        signature_id = sign_request.signatures[0].signature_id
+
+        # Get the embedded signing URL
+        sign_url = client.get_embedded_object(signature_id).sign_url
+        save_to_json(index_name, sign_url)
+
+        #     print(clients)
+        # sign_url="sign url"
         return jsonify({
             "isError":False,
             "message":"Sign request sent successfully",
@@ -203,14 +203,42 @@ def request_sign ():
     else :
         return render_template("admin_page.html")
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':       
-        json_data = request.json.get('json_data', {})
-        user_question = request.json.get('user_question', '')
-        result = run_conversation(user_question,json_data)
-        return jsonify(result) 
-    return render_template('index.html') ,200
+
+
+
+@app.route("/fetch_sign_url", methods=['GET'])
+def fetch_sign_url():
+    try:
+        index_name = request.args.get('index_name')
+        cn = index_name.replace(".pdf", "")
+        folder_path = os.path.join("data", cn)
+        json_file_path = os.path.join(folder_path, "sign_data.json")
+
+        with open(json_file_path, 'r') as f:
+            data = json.load(f)
+
+        return jsonify({
+            "isError": False,
+            "message": "Data fetched successfully",
+            "result": data,
+            "status-code": 200,
+        }), 200
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return jsonify({
+            "isError": True,
+            "message": "An error occurred",
+            "status-code": 500,
+        }), 500
+# @app.route('/', methods=['GET', 'POST'])
+# def index():
+#     if request.method == 'POST':       
+#         json_data = request.json.get('json_data', {})
+#         user_question = request.json.get('user_question', '')
+#         result = run_conversation(user_question,json_data)
+#         return jsonify(result) 
+#     return render_template('index.html') ,200
 
 
 
