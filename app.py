@@ -23,9 +23,8 @@ logging.basicConfig(level=logging.INFO)
 
 
 app = Flask(__name__)
+
 CORS(app)  # Enable CORS for the app
-
-
 
 
 DATA_DIR = 'data'
@@ -37,27 +36,54 @@ openai.api_key = API_KEY
 client = HSClient(api_key=HELLOSIGN_API_KEY)
 
 
-def save_to_json(index_name, sign_url, chat_history=None):
+# Assume this function is called every time a message is sent or received
+def cache_message(email, message):
+    if email in session:
+        session[email].append(message)
+    else:
+        session[email] = [message]
+
+def save_sign_urls(index_name, emails, signatures):
     cn = index_name.replace(".pdf", "")
     folder_path = os.path.join("data", cn)
-    
+
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
     json_file_path = os.path.join(folder_path, "sign_data.json")
 
     existing_data = {}
-    if os.path.exists(json_file_path):
-        with open(json_file_path, 'r') as f:
-            existing_data = json.load(f)
-
-    existing_data.update({"index_name": index_name, "sign_url": sign_url})
-    if chat_history:
-        existing_data.update({"chat_history": chat_history})
-
+    i = 0
+    for signature in signatures:
+        signature_id = signature.signature_id
+        sign_url = client.get_embedded_object(signature_id).sign_url
+        existing_data[emails[i]['email_address']] = {
+            "sign_url": sign_url,
+        }
+        i += 1
+    
     with open(json_file_path, 'w') as f:
         json.dump(existing_data, f)
 
+def save_to_json(index_name, email, chat_history=None):
+    cn = index_name.replace(".pdf", "")
+    folder_path = os.path.join("data", cn)
+
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+    json_file_path = os.path.join(folder_path, "sign_data.json")
+
+    existing_data = {}
+    
+    with open(json_file_path, 'r') as f:
+        json.load(f, existing_data)
+    print(existing_data)
+    if chat_history:
+        existing_data[email].update({"chat_history": chat_history})
+
+    with open(json_file_path, 'w') as f:
+        json.dump(existing_data, f)
 
 def create_response(status_code, message, isError, result):
     return jsonify({
@@ -141,17 +167,16 @@ def query():
         return create_response(500, "Error", True, {"error": str(e)})
 
 
+
 @app.route('/chat', methods=['GET'])
 def chat():
     index_name = request.args.get('index_name')
-    # sign_url = request.args.get('sign_url')
-
 
     if not index_name:
         return create_response(404, "Error", True, "Please provide a course name")
 
+    
     return render_template('chat.html', index_name=index_name)
-
 
 
 
@@ -161,55 +186,48 @@ def save_chat_history():
     try:
         chat_data = request.json.get('chatData')
         index_name = request.json.get('index_name')
-        sign_url = request.json.get('sign_url')  # If you have the sign_url, otherwise you can remove this
-        save_to_json(index_name, sign_url, chat_data)
+        email = request.json.get('email')
+        print(email)
+        save_to_json(index_name, email, chat_data)
         return jsonify({'success': True}), 200
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route("/request_sign", methods=['GET', 'POST'])
-def request_sign ():
+def request_sign():
     if request.method == "POST":
         index_name = request.json.get('index_name')
-        cn = index_name.replace(".pdf","")
+        cn = index_name.replace(".pdf", "")
         email_content = request.json.get("email_content")
         email_body = request.json.get("email_body")
-        clients = request.json.get("clients",[])
+        clients = request.json.get("clients", [])
         sign_request = client.send_signature_request_embedded(
-        test_mode=True,
-        client_id= client_id,
-        subject=email_body,
-        message=email_content,
-        signers=clients,
-        files=[os.path.abspath(f"data/{cn}/{index_name}")]    )
+            test_mode=True,
+            client_id=client_id,
+            subject=email_body,
+            message=email_content,
+            signers=clients,
+            files=[os.path.abspath(f"data/{cn}/{index_name}")]
+        )
+        # Initialize an empty list to hold the sign URLs
+        # Save to JSON if necessary
+        save_sign_urls(index_name, clients ,sign_request.signatures)
 
-
-    # Get the signature ID for the embedded request
-        signature_id = sign_request.signatures[0].signature_id
-
-        # Get the embedded signing URL
-        sign_url = client.get_embedded_object(signature_id).sign_url
-        save_to_json(index_name, sign_url)
-
-        #     print(clients)
-        # sign_url="sign url"
         return jsonify({
-            "isError":False,
-            "message":"Sign request sent successfully",
-            "result": sign_url,
-            "status-code":200,
-        }), 200
-    else :
+            "status": 200,
+            "message": "Sign request sent successfully",
+            "data": "",
+        })
+    else:
         return render_template("admin_page.html")
-
-
 
 
 @app.route("/fetch_sign_url", methods=['GET'])
 def fetch_sign_url():
     try:
         index_name = request.args.get('index_name')
+        email =  request.args.get('email')
         cn = index_name.replace(".pdf", "")
         folder_path = os.path.join("data", cn)
         json_file_path = os.path.join(folder_path, "sign_data.json")
@@ -217,30 +235,16 @@ def fetch_sign_url():
         with open(json_file_path, 'r') as f:
             data = json.load(f)
 
-        return jsonify({
-            "isError": False,
-            "message": "Data fetched successfully",
-            "result": data,
-            "status-code": 200,
-        }), 200
+        if email in data:
+            return create_response(200, "Data fetched successfully", False, data[email])
+        
+        else :
+            return create_response(404, "Invalid email address", True, "Please insert a valid email address")
+
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return jsonify({
-            "isError": True,
-            "message": "An error occurred",
-            "status-code": 500,
-        }), 500
-# @app.route('/', methods=['GET', 'POST'])
-# def index():
-#     if request.method == 'POST':       
-#         json_data = request.json.get('json_data', {})
-#         user_question = request.json.get('user_question', '')
-#         result = run_conversation(user_question,json_data)
-#         return jsonify(result) 
-#     return render_template('index.html') ,200
-
-
-
+        return create_response(500, "An error occurred", True, e)
+    
 if __name__ == '__main__':
     app.run(debug=True)

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
- 
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>ConvoSign</title>
     <style>
@@ -23,15 +23,19 @@
             position: fixed;
             top: 0;
             left: 0;
-            z-index: 1000; /* Make sure the logo stays on top */
+            z-index: 1000;
+            /* Make sure the logo stays on top */
         }
+
         .logo-container img {
-            width: 48px;  /* You can adjust the size */
-            height: 48px; /* You can adjust the size */
+            width: 48px;
+            /* You can adjust the size */
+            height: 48px;
+            /* You can adjust the size */
         }
 
         .main-container {
-            display: flex;
+            display: none;
             height: 100vh;
         }
 
@@ -56,6 +60,7 @@
             width: 100%;
             height: 100%;
         }
+
         .chat-header {
             background-color: #333;
             color: #fff;
@@ -156,6 +161,44 @@
             cursor: pointer;
         }
 
+        .popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        .popup-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            vertical-align: middle;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .card {
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin: auto;
+            width: 400px;
+            height: 100px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+
+
         #message-input {
             flex-grow: 1;
             padding: 5px;
@@ -168,12 +211,22 @@
 
 <body>
 
+    <div id="email-popup" class="popup">
+        <div class="popup-content card">
+            <div>
+                <label for="email">Enter your email:</label>
+                <input type="email" id="email">
+                <button id="submit-email">Submit</button>
+            </div>
+
+        </div>
+    </div>
     <div class="logo-container">
         <img src="{{ url_for('static', filename='android-chrome-384x384.png') }}" alt="Logo">
     </div>
-    <div class="main-container">
+    <div class="main-container" id="main-container">
         <div class="chat-container">
-            <div class="chat-header card">
+            <div class="chat-header">
                 <h2 id="doc-title"></h2>
                 <button class="action-button" id="finish-signing" onclick="finishSigning()">Finish Signing</button>
             </div>
@@ -192,74 +245,74 @@
 
         <div class="pdf-container">
             <!-- <iframe id="sign-iframe"></iframe> -->
-            <div id="sign-iframe" ></div>
+            <div id="sign-iframe"></div>
 
         </div>
     </div>
     <script>
         let indexName = "{{index_name}}"
+        let email = null;
+        document.addEventListener("DOMContentLoaded", async function () {
+            const popup = document.getElementById('email-popup');
+            const submitEmailBtn = document.getElementById('submit-email');
 
-        document.addEventListener("DOMContentLoaded", async function() {
-    const client = new window.HelloSign({
-        clientId: '3bdfa669fa8dcca488568a4be5a1a2c5'
-    });
-    const response = await fetch('/fetch_sign_url?&index_name={{ index_name }}');
-    const data = await response.json();
-    const signUrl = data.result.sign_url;
+            popup.style.display = "block";
 
-    client.open(signUrl, { testMode: true, container: document.getElementById('sign-iframe') });
+            submitEmailBtn.addEventListener("click", async () => {
+                email = document.getElementById('email').value;
+                if (email) {
 
-    // Attempt to override HelloSign styles after a delay
-    setTimeout(() => {
-        const hellosignEmbedded = document.querySelector('.x-hellosign-embedded');
-        if (hellosignEmbedded) {
-            hellosignEmbedded.style.position = 'relative';
-            hellosignEmbedded.style.top = 'auto';
-            hellosignEmbedded.style.left = 'auto';
-            hellosignEmbedded.style.width = '100%';
-            hellosignEmbedded.style.zIndex = 'auto';
+
+                    const response = await fetch(`/fetch_sign_url?email=${encodeURIComponent(email)}&index_name={{index_name}}`);
+                    const data = await response.json();
+                    if (data.isError) {
+                        alert(data.message);
+                    } else {
+                        popup.style.display = "none";
+                        document.getElementById("main-container").style.display = 'flex'
+                        const signUrl = data.result.sign_url;
+
+                        const client = new window.HelloSign({
+                            clientId: '98dbf192fd7315264bdb44584218db67'
+                        });
+
+                        client.open(signUrl, { testMode: true, container: document.getElementById('sign-iframe') });
+                    }
+                } else {
+                    alert("Email is required to proceed.");
+                }
+            });
+        });
+
+        async function finishSigning() {
+            const chatMessages = document.getElementById('chat-messages');
+            const chatData = Array.from(chatMessages.children).map(message => {
+                return {
+                    class: message.firstChild.className,
+                    text: message.firstChild.textContent
+                };
+            });
+
+            const indexName = "{{index_name}}";  // Replace this with how you get the index_name in your JavaScript
+            const signUrl = "your_sign_url_here";  // Replace this with how you get the sign_url in your JavaScript
+
+            const response = await fetch('/save_chat_history', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ chatData, index_name: indexName, sign_url: signUrl })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert('Chat history saved successfully.');
+            } else {
+                alert('Failed to save chat history.');
+            }
         }
 
-        const hellosignModal = document.querySelector('.x-hellosign-embedded--in-modal');
-        if (hellosignModal) {
-            hellosignModal.style.position = 'relative';
-            hellosignModal.style.top = 'auto';
-            hellosignModal.style.left = 'auto';
-            hellosignModal.style.width = '100%';
-            hellosignModal.style.zIndex = 'auto';
-        }
-    }, 1000);  // 1000 milliseconds = 1 second
-});
 
-async function finishSigning() {
-    const chatMessages = document.getElementById('chat-messages');
-    const chatData = Array.from(chatMessages.children).map(message => {
-        return {
-            class: message.firstChild.className,
-            text: message.firstChild.textContent
-        };
-    });
-
-    const indexName = "{{index_name}}";  // Replace this with how you get the index_name in your JavaScript
-    const signUrl = "your_sign_url_here";  // Replace this with how you get the sign_url in your JavaScript
-
-    const response = await fetch('/save_chat_history', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ chatData, index_name: indexName, sign_url: signUrl })
-    });
-
-    const data = await response.json();
-    if (data.success) {
-        alert('Chat history saved successfully.');
-    } else {
-        alert('Failed to save chat history.');
-    }
-}
-
-        
         document.getElementById("doc-title").innerText = indexName;
         const speakButton = document.getElementById('speak-button');
         var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition || window.mozSpeechRecognition || window.msSpeechRecognition)();
@@ -331,7 +384,7 @@ async function finishSigning() {
         });
 
 
- 
+
 
         document.getElementById("send-button").addEventListener("click", async (event) => {
             event.preventDefault();
@@ -384,6 +437,34 @@ async function finishSigning() {
                     sendButton.click(); // Simulate a click on the send button
                 }
             });
+        });
+
+        window.addEventListener('beforeunload', async function (e) {
+            const chatMessages = document.getElementById('chat-messages');
+            const chatData = Array.from(chatMessages.children).map(message => {
+                return {
+                    class: message.firstChild.className,
+                    text: message.firstChild.textContent
+                };
+            });
+
+            const indexName = "{{index_name}}";  // Replace this with how you get the index_name in your JavaScript
+            // Replace this with how you get the sign_url in your JavaScript
+
+            const response = await fetch('/save_chat_history', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ index_name: indexName, email: email, chatData: chatData })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert('Chat history saved successfully.');
+            } else {
+                alert('Failed to save chat history.');
+            }
         });
     </script>
 
