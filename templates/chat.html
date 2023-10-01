@@ -119,11 +119,21 @@
             font-size: 16px;
             display: inline-block;
             line-height: 24px;
-
-
+            transform-style: preserve-3d;
+            transition: transform 0.5s;
             max-width: 70%;
             margin: 0;
             padding: 10px 20px;
+        }
+
+        .front {
+            transform: 'rotateY(180deg)';
+            border-radius: 0 10px 10px 10px;
+        }
+
+        .back {
+            transform: 'rotateY(180deg)';
+            border-radius: 10px 0 10px 10px;
         }
 
         .chat-input {
@@ -147,6 +157,8 @@
             margin: 0;
             padding: 10px 20px;
         }
+
+
 
         .submit-button {
             font-size: 16px;
@@ -415,10 +427,29 @@
 
             var botDivElement = document.createElement("div");
 
-            const responseMessageElement = document.createElement('p');
+
+            const responseMessageElement = document.createElement('div');
             responseMessageElement.classList.add('bot-reply');
-            responseMessageElement.textContent = data.result.trim();
-            responseMessageElement.style.whiteSpace = 'pre-line'; // respect newlines in text content
+
+            const msgEle = document.createElement("p");
+            msgEle.textContent = data.result.trim();
+            msgEle.style.whiteSpace = 'pre-line'; // respect newlines in text content
+            responseMessageElement.appendChild(msgEle)
+            responseMessageElement.ondblclick = function () {
+                console.log("dvfvnf")
+                if (responseMessageElement.style.transform === 'rotateY(180deg)') {
+                    responseMessageElement.style.transform = 'rotateY(0deg)';
+                    responseMessageElement.style.borderRadius = '0 10px 10px 10px';
+                    msgEle.style.transform = 'rotateY(0deg)';
+                    msgEle.innerText = data.result.trim();
+                } else {
+                    responseMessageElement.style.transform = 'rotateY(180deg)';
+                    msgEle.style.transform = 'rotateY(180deg)';
+                    responseMessageElement.style.borderRadius = '10px 0 10px 10px';
+                    msgEle.innerText = "Apple\nsample";
+
+                }
+            };
             botDivElement.appendChild(responseMessageElement);
             chatThread.appendChild(botDivElement);
             messageInput.value = '';

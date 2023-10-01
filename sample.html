@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Bot with Flippable Cards</title>
+    <style>
+        #chatArea {
+            max-width: 300px;
+            margin: auto;
+        }
+
+        .chatCard {
+            width: 100%;
+            min-height: 100px;
+            border: 1px solid black;
+            margin-bottom: 10px;
+            position: relative;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 0.5s;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="chatArea">
+        <!-- Chat messages will appear here -->
+    </div>
+
+    <button onclick="addMessage('Hello!')">Add Message</button>
+
+    <script>
+        function addMessage(message) {
+            const chatArea = document.getElementById('chatArea');
+
+            const newCard = document.createElement("div");
+            newCard.className = "chatCard";
+            newCard.textContent = message;
+
+            // Add the double click event to flip the card
+            newCard.ondblclick = function () {
+                if (newCard.style.transform === 'rotateY(180deg)') {
+                    newCard.style.transform = 'rotateY(0deg)';
+                } else {
+                    newCard.style.transform = 'rotateY(180deg)';
+                }
+            };
+
+            chatArea.appendChild(newCard);
+        }
+    </script>
+</body>
+
+</html>
