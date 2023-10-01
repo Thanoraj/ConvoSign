@@ -116,6 +116,8 @@
             gap: 10px;
             padding: 20px 10px;
             background-color: rgb(116, 116, 139);
+            display: flex;
+            flex-direction: column
         }
 
         .user-prompt {
@@ -154,7 +156,7 @@
 .front, .back {
     flex-grow: 1;
     backface-visibility: hidden;
-    position: absolute;
+    /* position: absolute; */
     /* overflow-y: auto; */
     top: 0;
     left: 0;
@@ -321,7 +323,7 @@ function hideExampleCards() {
         
         document.addEventListener("DOMContentLoaded", async function() {
   const client = new window.HelloSign({
-    clientId: 'c353677b8c9fdb8a162356b7a80b7b40'
+    clientId: '5b54d3606b0260fe295c15ab057f4faa'
   });
 
   // Get email from URL parameter
@@ -529,25 +531,40 @@ window.addEventListener('beforeunload', async (event) => {
     frontElement.className = 'front bot-reply';
     frontElement.textContent = data.result.trim();
     frontElement.style.whiteSpace = 'pre-line';
+    frontElement.style.height = 'max-content'
 
     const backElement = document.createElement('div');
     backElement.className = 'back bot-reply';
     backElement.textContent = data.message.trim();
     backElement.style.whiteSpace = 'pre-line';
+    backElement.style.height = 'max-content'
+
 
     // Append front and back to flipper, and flipper to container
     flipperDiv.appendChild(frontElement);
     flipperDiv.appendChild(backElement);
+    // flipperDiv.appendChild(botDivElement);
     botDivElement.appendChild(flipperDiv);
+
 
     // Add double-click event to flip the card
     botDivElement.addEventListener('dblclick', function() {
         if (flipperDiv.style.transform === "rotateY(180deg)") {
             flipperDiv.style.transform = "rotateY(0deg)";
+            
         } else {
             flipperDiv.style.transform = "rotateY(180deg)";
+            backElement.style.top = 20;
+            backElement.style.left = 20;
+            backElement.style.position = "absolute";
+
         }
     });
+
+
+
+
+    
 
     // Append the flip container to the chat thread
     chatThread.appendChild(botDivElement);
