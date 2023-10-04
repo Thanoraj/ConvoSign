@@ -267,7 +267,7 @@
                     <label for="email">Enter your email:</label>
                 </div>
                 <div>
-                    <input type="email" id="email" class="input-container">
+                    <input type="email" id="email" class="input-container" value="judesajith.aj@gmail.com">
                 </div>
 
                 <button id="submit-email" class="action-button">Submit</button>
@@ -289,11 +289,10 @@
 
             </div>
             <div id="example-cards" class="example-cards">
-                <button class="example-card" onclick="sendExampleMessage('Hi')">Hi</button>
-                <button class="example-card" onclick="sendExampleMessage('How are you?')">How are you?</button>
-                <button class="example-card" onclick="sendExampleMessage('Tell me more about this service')">Tell me
-                    more about this service</button>
-                <button class="example-card" onclick="sendExampleMessage('Help')">Help</button>
+                <button class="example-card" onclick="sendExampleMessage('What is the deadline for signing this document?')">What is the deadline for signing this document?</button>
+                <button class="example-card" onclick="sendExampleMessage('Are there any penalties or obligations if I choose to terminate the agreement early?')">How are you?</button>
+                <button class="example-card" onclick="sendExampleMessage('Can you clarify the terms under the Liabilities section?')">Can you clarify the terms under the Liabilities section?</button>
+                <button class="example-card" onclick="sendExampleMessage('Is this document legally binding in all jurisdictions or only in specific locations?')">Will I receive a fully executed copy of the document after all parties have signed?</button>
             </div>
             <div class="chat-input chat-prompt">
 
@@ -459,67 +458,78 @@
 
 
 
-
         document.getElementById("send-button").addEventListener("click", async (event) => {
-            event.preventDefault();
+    event.preventDefault();
 
-            const messageInput = document.getElementById('message-input');
-            const chatThread = document.getElementById('chat-messages');
+    const messageInput = document.getElementById('message-input');
+    const chatThread = document.getElementById('chat-messages');
 
-            const prompt = messageInput.value
-            // Add the user's message to the chat thread
-            // Create a new <div> element with the class "right-align"
-            var divElement = document.createElement("div");
-            divElement.className = "right-align";
+    const prompt = messageInput.value;
 
-            // Create a new <p> element with the class "user-prompt" and text content "Hi!"
-            var pElement = document.createElement("p");
-            pElement.className = "user-prompt";
-            pElement.textContent = messageInput.value.trim();
+    var divElement = document.createElement("div");
+    divElement.className = "right-align";
 
-            // Append the <p> element as a child of the <div> element
-            divElement.appendChild(pElement);
-            // Calculate the maximum width based on the available space (70% of the parent container)
-            chatThread.appendChild(divElement);
+    var pElement = document.createElement("p");
+    pElement.className = "user-prompt";
+    pElement.textContent = messageInput.value.trim();
+    
+    divElement.appendChild(pElement);
+    chatThread.appendChild(divElement);
+    
+    messageInput.value = '';
 
-            // Clear the input field for the next message
-            messageInput.value = '';
-            const response = await fetch('/query?search=' + encodeURIComponent(prompt) + '&index_name={{ index_name }}');
-            const data = await response.json();
+    const response = await fetch('/query?search=' + encodeURIComponent(prompt) + '&index_name={{ index_name }}');
+    const data = await response.json();
 
-            var botDivElement = document.createElement("div");
+    try {
+        // Try to parse the 'message' field to an array of objects
+        const messageNodes = JSON.parse(data.message); 
+        console.log(messageNodes)
 
+        var botDivElement = document.createElement("div");
+        const responseMessageElement = document.createElement('div');
+        responseMessageElement.classList.add('bot-reply');
 
-            const responseMessageElement = document.createElement('div');
-            responseMessageElement.classList.add('bot-reply');
+        let formattedMessage = "";
+        messageNodes.forEach(nodeWithScore => {
+            formattedMessage += `Page Label: ${nodeWithScore.page_label.page_label}\n`;
+            formattedMessage += `File Name: ${nodeWithScore.page_label.file_name}\n`;
 
-            const msgEle = document.createElement("p");
-            msgEle.textContent = data.result.trim();
-            msgEle.style.whiteSpace = 'pre-line'; // respect newlines in text content
-            responseMessageElement.appendChild(msgEle)
-            responseMessageElement.ondblclick = function () {
-                console.log("dvfvnf")
-                if (responseMessageElement.style.transform === 'rotateY(180deg)') {
-                    responseMessageElement.style.transform = 'rotateY(0deg)';
-                    responseMessageElement.style.borderRadius = '0 10px 10px 10px';
-                    msgEle.style.transform = 'rotateY(0deg)';
-                    msgEle.innerText = data.result.trim().replace("\n", "<br>");
-                } else {
-                    responseMessageElement.style.transform = 'rotateY(180deg)';
-                    msgEle.style.transform = 'rotateY(180deg)';
-                    responseMessageElement.style.borderRadius = '10px 0 10px 10px';
-                    msgEle.innerText = data.message.trim().replace("\\n", "\n").replace(/\n/g, "\n");
-
-                }
-            };
-            botDivElement.appendChild(responseMessageElement);
-            chatThread.appendChild(botDivElement);
-            messageInput.value = '';
+            formattedMessage += `Score: ${nodeWithScore.score}\n`;
+            const textPart = nodeWithScore.node.split('Text: ')[1]; // Extracting text after 'Text: '
+            formattedMessage += `Text: ${textPart}\n\n`;
+        });
 
 
+        const msgEle = document.createElement("p");
+        msgEle.textContent = formattedMessage.trim();
+        msgEle.style.whiteSpace = 'pre-line';
+        
+        responseMessageElement.appendChild(msgEle);
+        
+        // Existing double-click logic
+        responseMessageElement.ondblclick = function () {
+            if (responseMessageElement.style.transform === 'rotateY(180deg)') {
+                responseMessageElement.style.transform = 'rotateY(0deg)';
+                msgEle.style.transform = 'rotateY(0deg)';
+                msgEle.innerText = data.result.trim();
 
+            } else {
+                responseMessageElement.style.transform = 'rotateY(180deg)';
+                msgEle.style.transform = 'rotateY(180deg)';
+                msgEle.innerText = formattedMessage.trim();
 
-        })
+            }
+        };
+
+        botDivElement.appendChild(responseMessageElement);
+        chatThread.appendChild(botDivElement);
+        messageInput.value = '';
+
+    } catch (error) {
+        console.error("Error parsing message as JSON:", error);
+    }
+});
 
         document.addEventListener("DOMContentLoaded", function () {
             const messageInput = document.getElementById("message-input");

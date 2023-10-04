@@ -12,11 +12,13 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for
 # ... (your existing imports)
 
 import json
-
+from json import dumps
 import logging
 
 from creds import API_KEY, HELLOSIGN_API_KEY, client_id
-
+from llama_index.node_parser import SimpleNodeParser
+from llama_index.node_parser.extractors import QuestionsAnsweredExtractor, MetadataExtractor
+from llama_index.text_splitter import TokenTextSplitter
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -37,11 +39,35 @@ client = HSClient(api_key=HELLOSIGN_API_KEY)
 
 
 # Assume this function is called every time a message is sent or received
-def cache_message(email, message):
-    if email in session:
-        session[email].append(message)
-    else:
-        session[email] = [message]
+# def cache_message(email, message):
+#     if email in session:
+#         session[email].append(message)
+#     else:
+#         session[email] = [message]
+
+
+def create_qa_metadata_extractor(llm):
+    DEFAULT_QUESTION_GEN_TMPL = """\
+Here is the context:
+{context_str}
+
+Given the contextual information from a document that should be signed by a signing party, \
+generate {num_questions} questions that the document signing parties can have regarding this context \
+specific answers to which are unlikely to be found elsewhere.
+
+Higher-level summaries of surrounding context may be provided \
+as well. Try using these summaries to generate better questions \
+that signers need to ask, that this context can answer.
+
+"""
+    return MetadataExtractor(
+        
+
+        extractors=[
+            QuestionsAnsweredExtractor(questions=1, llm=llm,prompt_template=DEFAULT_QUESTION_GEN_TMPL),
+        ],
+        in_place=False,
+    )
 
 def save_sign_urls(index_name, emails, signatures):
     cn = index_name.replace(".pdf", "")
@@ -127,7 +153,8 @@ def load_index(course_name):
 
 def queryFile(queryString, course_name):  # Added course_name as parameter
     index = load_index(course_name)  # Load the required index
-    queryEngine = index.as_query_engine()
+    queryEngine = index.as_query_engine( include_text=True,
+    retriever_mode="keyword")
     return queryEngine.query(queryString)
 
 
@@ -165,10 +192,16 @@ def query():
             return create_response(404, "Error", True, "This course is not available")
         
         queryeng = queryFile(query, course_name)
-        source = queryeng.source_nodes[0]
-        result = queryeng.response
+        source = queryeng.source_nodes
+        print(source)
+        list_of_dict_nodes = [{"node": str(node.node), "score": node.score,"page_label": node.node.metadata} for node in source]
 
-        return create_response(200, str(source), False, result)
+# Convert list of dictionaries to JSON string
+        json_string = dumps(list_of_dict_nodes)
+        result = queryeng.response
+        
+
+        return create_response(200, str(json_string), False, result)
     
     except Exception as e:
         logging.error(f"An error occurred: {e}")
@@ -212,12 +245,14 @@ def request_sign():
         clients = request.json.get("clients", [])
         sign_request = client.send_signature_request_embedded(
             test_mode=True,
+            # use_text_tags=True,
             client_id=client_id,
             subject=email_body,
             message=email_content,
             signers=clients,
             files=[os.path.abspath(f"data/{cn}/{index_name}")]
         )
+        
         # Initialize an empty list to hold the sign URLs
         # Save to JSON if necessary
         save_sign_urls(index_name, clients ,sign_request.signatures)
@@ -255,6 +290,59 @@ def fetch_sign_url():
     except Exception as e:
         print(f"An error occurred: {e}")
         return create_response(500, "An error occurred", True, e)
+    
+
+
+
+
+# from llama_index import SimpleDirectoryReader
+
+@app.route('/extract_qa', methods=['POST'])
+def extract_qa():
+    try:
+        index_name = request.json.get('index_name')
+        if not index_name:
+            return jsonify({"status": 400, "message": "Index name not provided"}), 400
+
+        # Construct the path to the document
+        cn = index_name.replace(".pdf", "")
+        folder_path = os.path.join("data", cn)
+
+        # Read the document content using SimpleDirectoryReader
+        reader = SimpleDirectoryReader(folder_path)
+
+        # from llama_index.schema import Document
+        # doc = Document(text=text)
+
+        # text_splitter = TokenTextSplitter(separator=" ", chunk_size=512, chunk_overlap=128)
+
+
+        document = reader.load_data()
+        
+        # Initialize LLM and metadata extractor
+        llm = OpenAI(temperature=0.1, model="text-davinci-003", max_tokens=512)
+        metadata_extractor = create_qa_metadata_extractor(llm)
+        node_parser = SimpleNodeParser.from_defaults(
+                  
+                )
+        orig_nodes = node_parser.get_nodes_from_documents(document)
+        print(len(orig_nodes))
+        # Extract questions and answers
+        nodes = metadata_extractor.process_nodes(orig_nodes[:5])
+        list_of_dict_nodes = [{ "question": node.metadata["questions_this_excerpt_can_answer"]} for node in nodes]
+
+# Convert list of dictionaries to JSON string
+        json_string = {"questionslist": list_of_dict_nodes}
+        # result = queryeng.response
+
+        # print(nodes)
+        # qa_list = [ndata]
+
+        return jsonify({"status": 200, "message": "Questions and answers extracted successfully", "data": json_string}), 200
+
+    except Exception as e:
+        return jsonify({"status": 500, "message": str(e)}), 500
+
     
 if __name__ == '__main__':
     app.run(debug=True)
