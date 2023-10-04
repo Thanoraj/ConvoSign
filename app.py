@@ -52,7 +52,7 @@ Here is the context:
 {context_str}
 
 Given the contextual information from a document that should be signed by a signing party, \
-generate {num_questions} questions that the document signing parties can have regarding this context \
+generate {num_questions} questions with less than 20 tokens that the document signing parties can have regarding this context \
 specific answers to which are unlikely to be found elsewhere.
 
 Higher-level summaries of surrounding context may be provided \
@@ -91,7 +91,7 @@ def save_sign_urls(index_name, emails, signatures):
     with open(json_file_path, 'w') as f:
         json.dump(existing_data, f)
 
-def save_to_json(index_name, email, chat_history=None):
+def save_chat(index_name, email, chat_history=None):
     cn = index_name.replace(".pdf", "")
     folder_path = os.path.join("data", cn)
 
@@ -109,12 +109,62 @@ def save_to_json(index_name, email, chat_history=None):
 
     except Exception as e:
         print(e)
-    print(existing_data)
+    
     if chat_history:
         existing_data[email].update({"chat_history": chat_history})
 
     with open(json_file_path, 'w') as f:
         json.dump(existing_data, f)
+
+
+
+def save_to_json(index_name, key ,value):
+    cn = index_name.replace(".pdf", "")
+    folder_path = os.path.join("data", cn)
+
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+    
+    json_file_path = os.path.join(folder_path, "sign_data.json")
+
+    existing_data = {}
+    print(existing_data)
+    try:
+        with open(json_file_path, 'r') as f:
+            existing_data = json.load(f)
+
+    except Exception as e:
+        print(e)
+    
+   
+    existing_data[key] = value
+
+    with open(json_file_path, 'w') as f:
+        json.dump(existing_data, f)
+
+
+def load_json (index_name):
+    cn = index_name.replace(".pdf", "")
+    folder_path = os.path.join("data", cn)
+
+    if not os.path.exists(folder_path):
+       return {}
+
+    
+    json_file_path = os.path.join(folder_path, "sign_data.json")
+
+    existing_data = {}
+    
+    try:
+        with open(json_file_path, 'r') as f:
+            existing_data = json.load(f)
+
+    except Exception as e:
+        print(e)
+
+
+    return existing_data
 
 def create_response(status_code, message, isError, result):
     return jsonify({
@@ -229,7 +279,7 @@ def save_chat_history():
         index_name = request.json.get('index_name')
         email = request.json.get('email')
         print(email)
-        save_to_json(index_name, email, chat_data)
+        save_chat(index_name, email, chat_data)
         return jsonify({'success': True}), 200
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -316,26 +366,29 @@ def extract_qa():
 
         # text_splitter = TokenTextSplitter(separator=" ", chunk_size=512, chunk_overlap=128)
 
+        data = load_json(index_name)
+        print(data)
+        if "questionslist" not in data:
+            print("in")
+            document = reader.load_data()
+            
+            # Initialize LLM and metadata extractor
+            llm = OpenAI(temperature=0.1, model="text-davinci-003", max_tokens=512)
+            metadata_extractor = create_qa_metadata_extractor(llm)
+            node_parser = SimpleNodeParser.from_defaults()
+            orig_nodes = node_parser.get_nodes_from_documents(document)
+            print(len(orig_nodes))
+            # Extract questions and answers
+            nodes = metadata_extractor.process_nodes(orig_nodes[:5])
+            list_of_dict_nodes = [{ "question": node.metadata["questions_this_excerpt_can_answer"]} for node in nodes]
+            save_to_json(index_name,"questionslist", list_of_dict_nodes )
+        else:
+            list_of_dict_nodes = data["questionslist"]
 
-        document = reader.load_data()
-        
-        # Initialize LLM and metadata extractor
-        llm = OpenAI(temperature=0.1, model="text-davinci-003", max_tokens=512)
-        metadata_extractor = create_qa_metadata_extractor(llm)
-        node_parser = SimpleNodeParser.from_defaults(
-                  
-                )
-        orig_nodes = node_parser.get_nodes_from_documents(document)
-        print(len(orig_nodes))
-        # Extract questions and answers
-        nodes = metadata_extractor.process_nodes(orig_nodes[:5])
-        list_of_dict_nodes = [{ "question": node.metadata["questions_this_excerpt_can_answer"]} for node in nodes]
-
-# Convert list of dictionaries to JSON string
         json_string = {"questionslist": list_of_dict_nodes}
         # result = queryeng.response
 
-        # print(nodes)
+        
         # qa_list = [ndata]
 
         return jsonify({"status": 200, "message": "Questions and answers extracted successfully", "data": json_string}), 200

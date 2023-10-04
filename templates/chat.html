@@ -98,10 +98,15 @@
             margin: 5px 0px;
         }
 
+        .hidden {
+            display: none;
+        }
+
         .chat-messages {
             flex-grow: 1;
             overflow-y: auto;
             gap: 10px;
+            bottom: 0;
             padding: 20px 10px;
             background-color: rgb(116, 116, 139);
         }
@@ -224,29 +229,52 @@
         }
 
         .example-cards {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
             align-items: center;
             padding: 10px;
-            gap: 20px;
             background-color: rgb(116, 116, 139);
+        }
+
+        .example-cards1 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            align-items: center;
+            padding: 10px;
+            background-color: "transparent";
+        }
+
+        .example-section {
+            position: absolute;
+            z-index: 1;
         }
 
         .example-card {
             vertical-align: top;
-            font-size: 16px;
-            font-weight: 700;
-            line-height: 24px;
+            font-size: 12px;
             color: #fff;
             border-radius: 10px;
-            padding: 10px 20px;
+            padding: 10px 10px;
             cursor: pointer;
             border: none;
-            margin: 5px;
             background-color: rgb(45, 45, 60);
             backdrop-filter: blur(10px);
         }
 
-
+        #icon-button {
+            position: absolute;
+            z-index: 1;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #fff;
+            color: #fff;
+            text-align: center;
+            line-height: 40px;
+            cursor: pointer;
+        }
 
         #message-input {
             flex-grow: 1;
@@ -267,7 +295,7 @@
                     <label for="email">Enter your email:</label>
                 </div>
                 <div>
-                    <input type="email" id="email" class="input-container" value="judesajith.aj@gmail.com">
+                    <input type="email" id="email" class="input-container" value="muthulingamthanoraj@gmail.com">
                 </div>
 
                 <button id="submit-email" class="action-button">Submit</button>
@@ -282,17 +310,29 @@
         <div class="chat-container">
             <div class="chat-header">
                 <h2 id="doc-title"></h2>
-                <button class="action-button" id="finish-signing" onclick="finishSigning()">Finish Signing</button>
             </div>
             <div class="chat-messages" id="chat-messages">
+                <div id="example-section" class="example-section">
+                    <button id="icon-button">🔍</button>
+                    <div id="example-cards1" class="example-cards1">
+                    </div>
+                </div>
                 <!-- Messages will be displayed here -->
 
             </div>
             <div id="example-cards" class="example-cards">
-                <button class="example-card" onclick="sendExampleMessage('What is the deadline for signing this document?')">What is the deadline for signing this document?</button>
-                <button class="example-card" onclick="sendExampleMessage('Are there any penalties or obligations if I choose to terminate the agreement early?')">How are you?</button>
-                <button class="example-card" onclick="sendExampleMessage('Can you clarify the terms under the Liabilities section?')">Can you clarify the terms under the Liabilities section?</button>
-                <button class="example-card" onclick="sendExampleMessage('Is this document legally binding in all jurisdictions or only in specific locations?')">Will I receive a fully executed copy of the document after all parties have signed?</button>
+                <!-- <button class="example-card"
+                    onclick="sendExampleMessage('What is the deadline for signing this document?')">What is the deadline
+                    for signing this document?</button>
+                <button class="example-card"
+                    onclick="sendExampleMessage('Are there any penalties or obligations if I choose to terminate the agreement early?')">How
+                    are you?</button>
+                <button class="example-card"
+                    onclick="sendExampleMessage('Can you clarify the terms under the Liabilities section?')">Can you
+                    clarify the terms under the Liabilities section?</button>
+                <button class="example-card"
+                    onclick="sendExampleMessage('Is this document legally binding in all jurisdictions or only in specific locations?')">Will
+                    I receive a fully executed copy of the document after all parties have signed?</button> -->
             </div>
             <div class="chat-input chat-prompt">
 
@@ -318,18 +358,26 @@
         function sendExampleMessage(message) {
             document.getElementById('message-input').value = message;
             document.getElementById('send-button').click();
-            hideExampleCards();
         }
 
         function hideExampleCards() {
-            document.getElementById('example-cards').style.display = 'none';
+            document.getElementById('example-cards1').style.display = 'none';
         }
+
+        function showExampleCards() {
+            document.getElementById('example-cards1').style.display = 'grid';
+        }
+
+        let firstClick = true;
 
         document.addEventListener("DOMContentLoaded", async function () {
             const popup = document.getElementById('email-popup');
             const submitEmailBtn = document.getElementById('submit-email');
 
             popup.style.display = "block";
+
+
+
 
             submitEmailBtn.addEventListener("click", async () => {
                 email = document.getElementById('email').value;
@@ -354,6 +402,52 @@
                 } else {
                     alert("Email is required to proceed.");
                 }
+            });
+            submitEmailBtn.click();
+
+            const response = await fetch('/extract_qa', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ index_name: indexName })
+            });
+
+
+            const data = await response.json();
+            const exampleCards = document.getElementById("example-cards1");
+
+            if (data.status === 200) {
+
+                for (let question in data.data.questionslist) {
+                    const exampleCard = document.createElement('button');
+                    exampleCard.className = 'example-card';
+                    exampleCard.innerText = data.data.questionslist[question].question;
+                    exampleCard.onclick = function () {
+                        sendExampleMessage(data.data.questionslist[question].question);
+                        exampleCards.removeChild(exampleCard);
+                        hideExampleCards();
+                        firstClick = false;
+                    };
+                    exampleCards.appendChild(exampleCard);
+                    console.log(data.data.questionslist[question].question);
+                }
+            } else {
+                console.log(data.message);
+            }
+
+            console.log(exampleCards.classList);
+
+
+            const exampleSection = document.getElementById("example-section");
+
+            exampleSection.addEventListener('mouseout', function () {
+                if (!firstClick) hideExampleCards();
+            });
+
+
+            exampleSection.addEventListener('mouseover', function () {
+                showExampleCards();
             });
         });
 
@@ -459,77 +553,77 @@
 
 
         document.getElementById("send-button").addEventListener("click", async (event) => {
-    event.preventDefault();
+            event.preventDefault();
 
-    const messageInput = document.getElementById('message-input');
-    const chatThread = document.getElementById('chat-messages');
+            const messageInput = document.getElementById('message-input');
+            const chatThread = document.getElementById('chat-messages');
 
-    const prompt = messageInput.value;
+            const prompt = messageInput.value;
 
-    var divElement = document.createElement("div");
-    divElement.className = "right-align";
+            var divElement = document.createElement("div");
+            divElement.className = "right-align";
 
-    var pElement = document.createElement("p");
-    pElement.className = "user-prompt";
-    pElement.textContent = messageInput.value.trim();
-    
-    divElement.appendChild(pElement);
-    chatThread.appendChild(divElement);
-    
-    messageInput.value = '';
+            var pElement = document.createElement("p");
+            pElement.className = "user-prompt";
+            pElement.textContent = messageInput.value.trim();
 
-    const response = await fetch('/query?search=' + encodeURIComponent(prompt) + '&index_name={{ index_name }}');
-    const data = await response.json();
+            divElement.appendChild(pElement);
+            chatThread.appendChild(divElement);
 
-    try {
-        // Try to parse the 'message' field to an array of objects
-        const messageNodes = JSON.parse(data.message); 
-        console.log(messageNodes)
+            messageInput.value = '';
 
-        var botDivElement = document.createElement("div");
-        const responseMessageElement = document.createElement('div');
-        responseMessageElement.classList.add('bot-reply');
+            const response = await fetch('/query?search=' + encodeURIComponent(prompt) + '&index_name={{ index_name }}');
+            const data = await response.json();
 
-        let formattedMessage = "";
-        messageNodes.forEach(nodeWithScore => {
-            formattedMessage += `Page Label: ${nodeWithScore.page_label.page_label}\n`;
-            formattedMessage += `File Name: ${nodeWithScore.page_label.file_name}\n`;
+            try {
+                // Try to parse the 'message' field to an array of objects
+                const messageNodes = JSON.parse(data.message);
+                console.log(messageNodes)
 
-            formattedMessage += `Score: ${nodeWithScore.score}\n`;
-            const textPart = nodeWithScore.node.split('Text: ')[1]; // Extracting text after 'Text: '
-            formattedMessage += `Text: ${textPart}\n\n`;
-        });
+                var botDivElement = document.createElement("div");
+                const responseMessageElement = document.createElement('div');
+                responseMessageElement.classList.add('bot-reply');
+
+                let formattedMessage = "";
+                messageNodes.forEach(nodeWithScore => {
+                    formattedMessage += `Page Label: ${nodeWithScore.page_label.page_label}\n`;
+                    formattedMessage += `File Name: ${nodeWithScore.page_label.file_name}\n`;
+
+                    formattedMessage += `Score: ${nodeWithScore.score}\n`;
+                    const textPart = nodeWithScore.node.split('Text: ')[1]; // Extracting text after 'Text: '
+                    formattedMessage += `Text: ${textPart}\n\n`;
+                });
 
 
-        const msgEle = document.createElement("p");
-        msgEle.textContent = formattedMessage.trim();
-        msgEle.style.whiteSpace = 'pre-line';
-        
-        responseMessageElement.appendChild(msgEle);
-        
-        // Existing double-click logic
-        responseMessageElement.ondblclick = function () {
-            if (responseMessageElement.style.transform === 'rotateY(180deg)') {
-                responseMessageElement.style.transform = 'rotateY(0deg)';
-                msgEle.style.transform = 'rotateY(0deg)';
-                msgEle.innerText = data.result.trim();
+                const msgEle = document.createElement("p");
+                msgEle.textContent = data.result.trim();
+                msgEle.style.whiteSpace = 'pre-line';
 
-            } else {
-                responseMessageElement.style.transform = 'rotateY(180deg)';
-                msgEle.style.transform = 'rotateY(180deg)';
-                msgEle.innerText = formattedMessage.trim();
+                responseMessageElement.appendChild(msgEle);
 
+                // Existing double-click logic
+                responseMessageElement.ondblclick = function () {
+                    if (responseMessageElement.style.transform === 'rotateY(180deg)') {
+                        responseMessageElement.style.transform = 'rotateY(0deg)';
+                        msgEle.style.transform = 'rotateY(0deg)';
+                        msgEle.innerText = data.result.trim();
+
+                    } else {
+                        responseMessageElement.style.transform = 'rotateY(180deg)';
+                        msgEle.style.transform = 'rotateY(180deg)';
+                        msgEle.innerText = formattedMessage.trim();
+
+                    }
+                };
+
+                botDivElement.appendChild(responseMessageElement);
+                chatThread.appendChild(botDivElement);
+                messageInput.value = '';
+
+            } catch (error) {
+                console.error("Error parsing message as JSON:", error);
             }
-        };
-
-        botDivElement.appendChild(responseMessageElement);
-        chatThread.appendChild(botDivElement);
-        messageInput.value = '';
-
-    } catch (error) {
-        console.error("Error parsing message as JSON:", error);
-    }
-});
+        });
 
         document.addEventListener("DOMContentLoaded", function () {
             const messageInput = document.getElementById("message-input");

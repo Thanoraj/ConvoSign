@@ -3,3 +3,4 @@ flask-cors
 llama-index
 openai
 hellosign-python-sdk
+pypdf
