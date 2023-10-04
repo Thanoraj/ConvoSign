@@ -193,15 +193,31 @@ def query():
         
         queryeng = queryFile(query, course_name)
         source = queryeng.source_nodes
-        print(source)
-        list_of_dict_nodes = [{"node": str(node.node), "score": node.score,"page_label": node.node.metadata} for node in source]
+
+
+        llm = OpenAI(temperature=0.1, model="text-davinci-003", max_tokens=512)
+        metadata_extractor = create_qa_metadata_extractor(llm)
+        node_parser = SimpleNodeParser.from_defaults(
+                  
+                )
+        # orig_nodes = node_parser.get_nodes_from_documents(document)
+        # print(len(orig_nodes))
+        # Extract questions and answers
+        nodes = metadata_extractor.process_nodes(source)
+        # list_of_dict_nodes = [{ "question": node.metadata["questions_this_excerpt_can_answer"]} for node in nodes]
 
 # Convert list of dictionaries to JSON string
-        json_string = dumps(list_of_dict_nodes)
-        result = queryeng.response
+        json_string = {"questionslist": str(nodes)}
+
+#         print(source)
+#         list_of_dict_nodes = [{"node": str(node.node), "score": node.score,"page_label": node.node.metadata} for node in source]
+
+# # Convert list of dictionaries to JSON string
+#         json_string = dumps(list_of_dict_nodes)
+#         result = queryeng.response
         
 
-        return create_response(200, str(json_string), False, result)
+        return create_response(200,json_string, False, "result")
     
     except Exception as e:
         logging.error(f"An error occurred: {e}")
@@ -292,6 +308,15 @@ def fetch_sign_url():
         return create_response(500, "An error occurred", True, e)
     
 
+def return_storagecontext(course_name):
+    DIRECTORY = "data"
+    storage_path = os.path.join(DIRECTORY, course_name.replace(".pdf",""))
+    # if os.path.exists(storage_path):
+        # rebuild storage context
+    storage_context = StorageContext.from_defaults(persist_dir=storage_path)
+    # load index
+    
+    return storage_context  # Load the index
 
 
 
@@ -342,6 +367,31 @@ def extract_qa():
 
     except Exception as e:
         return jsonify({"status": 500, "message": str(e)}), 500
+
+@app.route('/questions-for-nodes', methods=['POST'])
+def get_questions_for_nodes():
+    node_ids = request.json.get('node_id')
+    index_name = request.json.get('index_name')
+
+    print(node_ids)
+    llm = OpenAI(temperature=0.1, model="text-davinci-003", max_tokens=512)
+    metadata_extractor = create_qa_metadata_extractor(llm)
+    # node_id = "your_node_id_here"
+    
+    storage_context = return_storagecontext(index_name)
+    
+    node = storage_context.docstore.get_document(node_ids)
+    nodes = metadata_extractor.process_nodes(node)
+    list_of_dict_nodes = [{ "question": node.metadata["questions_this_excerpt_can_answer"]} for node in nodes]
+
+# Convert list of dictionaries to JSON string
+    json_string = {"questionslist": list_of_dict_nodes}
+
+    return jsonify({"status": 200, "message": "Questions and answers extracted successfully", "data": json_string}), 200
+
+
+    # response_data = {node_id: NODE_QUESTIONS.get(node_id, []) for node_id in node_ids}
+    # return jsonify({"status": "success", "data": response_data})
 
     
 if __name__ == '__main__':
