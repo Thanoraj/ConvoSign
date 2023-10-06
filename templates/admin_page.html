@@ -5,8 +5,8 @@
   <title>ConvoSign</title>
   <meta charset="utf-8" />
   <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
- 
-  
+
+
   <!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <style>
@@ -319,10 +319,10 @@
 
             if (response.ok) {
               let data = await response.json();
-              console.log(data,"response");
+              console.log(data, "response");
               const sign_url = data.result
-              
-            document.getElementById("signing-url").value = "https://sign.convosign.xyz/chat?index_name=" + fileName;
+
+              document.getElementById("signing-url").value = "https://sign.convosign.xyz/chat?index_name=" + fileName;
               // Display the card
               document.getElementById("signing-url-card").style.display = "block";
             } else {
@@ -390,7 +390,7 @@
         <!-- Email Subject Card -->
         <div class="card">
           <label for="email-subject">Email Subject:</label>
-          <input type="text" id="email-subject" class="input-container" name="email-subject" required  />
+          <input type="text" id="email-subject" class="input-container" name="email-subject" required />
         </div>
 
         <!-- Email Content Card -->
@@ -407,8 +407,8 @@
           <label>Email and Name:</label>
           <div id="email-name-container">
             <div class="email-name-pair">
-              <input type="text" class="input-container" placeholder="Email" value="judesajith.aj@gmail.com"/>
-              <input type="text" class="input-container" placeholder="Name" value="jude sajith"/>
+              <input type="text" class="input-container" placeholder="Email" />
+              <input type="text" class="input-container" placeholder="Name" />
             </div>
           </div>
           <button type="button" id="add-button">+</button>
