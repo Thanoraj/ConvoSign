@@ -295,7 +295,7 @@
                     <label for="email">Enter your email:</label>
                 </div>
                 <div>
-                    <input type="email" id="email" class="input-container" value="muthulingamthanoraj@gmail.com">
+                    <input type="email" id="email" class="input-container" value="judesajith.aj@gmail.com">
                 </div>
 
                 <button id="submit-email" class="action-button">Submit</button>
@@ -590,8 +590,12 @@
                     formattedMessage += `File Name: ${nodeWithScore.page_label.file_name}\n`;
 
                     formattedMessage += `Score: ${nodeWithScore.score}\n`;
+                    const nodeIdPart = nodeWithScore.node.match(/Node ID: ([\w-]+)/)[1]; // Extracting the Node ID using a regex
                     const textPart = nodeWithScore.node.split('Text: ')[1]; // Extracting text after 'Text: '
+
+                    formattedMessage += `Node ID: ${nodeIdPart}\n\n`;
                     formattedMessage += `Text: ${textPart}\n\n`;
+
                 });
 
 

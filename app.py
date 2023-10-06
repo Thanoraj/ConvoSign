@@ -1,5 +1,6 @@
 import os
 import shutil
+import traceback
 import flask
 from flask import Flask, request, jsonify, request, Response, render_template
 from llama_index import GPTVectorStoreIndex, SimpleDirectoryReader, StorageContext, load_index_from_storage, LLMPredictor, ServiceContext
@@ -226,6 +227,43 @@ def file_upload():
         return create_response(400, str(e), True, "An error occurred during file upload")
 
 
+def extract_metadata(node):
+    metadata = node.metadata
+    # nodeid = node.node_id
+    return metadata
+
+
+def get_questions_for_nodes(node_ids,index_name):
+    # node_ids/ = request.json.get('index_name')
+
+    print(node_ids)
+    llm = OpenAI(temperature=0.1, model="text-davinci-003", max_tokens=512)
+    metadata_extractor = create_qa_metadata_extractor(llm)
+    # node_id = "your_node_id_here"
+    
+    nodes = return_storagecontext(index_name).docstore.get_nodes(node_ids=node_ids,raise_error=True)
+    # node = storage_context.docstore.get_document(node_ids)
+    nodes = metadata_extractor.process_nodes(nodes)
+    # print(list_of_dict_nodes)
+    question_dict=[]
+    list_of_dict_nodes=  [extract_metadata(node) for node in nodes]
+    for metadata in list_of_dict_nodes:
+        page_label = metadata['page_label']
+        question = metadata['questions_this_excerpt_can_answer']
+        # node_id = f'node_{page_label}'  # Create a node ID based on page label
+        
+        # if node_id not in question_dict:
+            # question_dict[node_id] = []
+
+        question_dict.append(question)
+        
+    json_data = {
+                    "data": question_dict
+                }
+    # list_of_dict_nodes = {[{ "question": node.node.metadata["questions_this_excerpt_can_answer"]} for node in nodes]}
+    # data_json = {"questionslist":list_of_dict_nodes}
+    return question_dict
+
 @app.route("/query")
 def query():
     try:
@@ -243,18 +281,31 @@ def query():
         
         queryeng = queryFile(query, course_name)
         source = queryeng.source_nodes
-        print(source)
-        list_of_dict_nodes = [{"node": str(node.node), "score": node.score,"page_label": node.node.metadata} for node in source]
+        # print(source)
+        list_of_nodeIDs = [node.node_id for node in source]
+        # print(list_of_nodeIDs)
 
+        question_data = get_questions_for_nodes(list_of_nodeIDs,course_name)
+        print(question_data)
+
+        # return str(question_data)
+
+        # return str(list_of_nodeIDs)
+        list_of_dict_nodes = [{"node": str(node.node),  "score": node.score,"page_label": node.node.metadata} for node in source]
+        # return question_data
 # Convert list of dictionaries to JSON string
         json_string = dumps(list_of_dict_nodes)
+        # qs_string = dumps(question_data)
+
         result = queryeng.response
         
 
-        return create_response(200, str(json_string), False, result)
+        return jsonify({"statusCode":200,"isError":False,"data": question_data, "message":str(json_string),"result":result}),200
     
     except Exception as e:
-        logging.error(f"An error occurred: {e}")
+        ceback= traceback.format_exc()
+        # logging.exception("Error in /saveTopicSummary route")
+        logging.error(f"An error occurred: {e}, {ceback}")
         return create_response(500, "Error", True, {"error": str(e)})
 
 
@@ -395,6 +446,44 @@ def extract_qa():
 
     except Exception as e:
         return jsonify({"status": 500, "message": str(e)}), 500
+
+
+def return_storagecontext(course_name):
+    DIRECTORY = "data"
+    storage_path = os.path.join(DIRECTORY, course_name.replace(".pdf",""))
+    # if os.path.exists(storage_path):
+        # rebuild storage context
+    storage_context = StorageContext.from_defaults(persist_dir=storage_path)
+    # load index
+    
+    return storage_context  # Load the index
+# # @app.route('/questions-for-nodes', methods=['POST'])
+# def get_questions_for_nodes(node_ids,index_name):
+#     node_ids = request.json.get('node_ids',[])
+#     index_name = request.json.get('index_name')
+
+#     print(node_ids)
+#     llm = OpenAI(temperature=0.1, model="text-davinci-003", max_tokens=512)
+#     metadata_extractor = create_qa_metadata_extractor(llm)
+#     # node_id = "your_node_id_here"
+    
+#     nodes = return_storagecontext(index_name).docstore.get_nodes(node_ids=node_ids,raise_error=True)
+#     # node = storage_context.docstore.get_document(node_ids)
+#     nodes = metadata_extractor.process_nodes(nodes)
+
+#     list_of_dict_nodes = [{ "question": node.metadata["questions_this_excerpt_can_answer"]} for node in nodes]
+#     data_json = {"questionslist":list_of_dict_nodes}
+    # return jsonify(str(list_of_dict_nodes))
+
+# Convert list of dictionaries to JSON string
+    # json_string = {"questionslist": list_of_dict_nodes}
+
+    # return jsonify({"status": 200, "message": "Questions and answers extracted successfully", "data": data_json}), 200
+
+
+    # response_data = {node_id: NODE_QUESTIONS.get(node_id, []) for node_id in node_ids}
+    # return jsonify({"status": "success", "data": response_data})
+
 
     
 if __name__ == '__main__':
